@@ -1,0 +1,73 @@
+/* iPhone-мокап для разработки. Внутри рендерится приложение в масштабе экрана 393×852. */
+.dev-stage {
+  min-height: 100vh;
+  background: radial-gradient(1200px 800px at 30% 0%, #26262e 0%, #0f0f13 60%, #09090c 100%);
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, Segoe UI, Roboto, sans-serif;
+}
+.dev-stage__aside {
+  position: fixed; left: 20px; top: 20px; color: #9a9aa3; font-size: 12px; line-height: 1.6;
+  user-select: none;
+}
+.dev-stage__aside b { color: #e8e8ee; font-weight: 600; }
+.dev-stage__aside a { color: #ff5a1f; }
+.dev-stage__aside code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; }
+
+.iphone {
+  --w: 393px; --h: 852px; --bezel: 14px; --radius: 56px;
+  position: relative;
+  width: calc(var(--w) + var(--bezel) * 2);
+  height: calc(var(--h) + var(--bezel) * 2);
+  border-radius: calc(var(--radius) + var(--bezel));
+  background: #111114;
+  box-shadow:
+    0 0 0 2px #2b2b31,
+    0 0 0 4px #0b0b0d,
+    0 30px 80px rgba(0,0,0,0.6),
+    inset 0 0 0 1px rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+/* Кнопки на боку */
+.iphone::before, .iphone::after {
+  content: ''; position: absolute; background: #2a2a30; border-radius: 2px;
+}
+.iphone::before { left: -7px; top: 150px; width: 3px; height: 32px; box-shadow: 0 60px 0 #2a2a30, 0 130px 0 #2a2a30; }
+.iphone::after { right: -7px; top: 220px; width: 3px; height: 90px; }
+
+.iphone__screen {
+  position: absolute; inset: var(--bezel);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  /* Динамический остров + хоум-индикатор живут в safe-area */
+  --safe-top: 54px;
+  --safe-bottom: 28px;
+}
+.iphone__screen > * { --safe-top: 54px; --safe-bottom: 28px; }
+
+.iphone__island {
+  position: absolute; left: 50%; top: 11px; transform: translateX(-50%);
+  width: 126px; height: 37px; border-radius: 20px; background: #000;
+  z-index: 100; pointer-events: none;
+}
+.iphone__status {
+  position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 99; pointer-events: none;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 32px 0 36px;
+  font-size: 15px; font-weight: 600; color: #000;
+  font-variant-numeric: tabular-nums;
+}
+.iphone__status-right { display: flex; align-items: center; gap: 6px; }
+.iphone__home {
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+  width: 134px; height: 5px; border-radius: 3px; background: #000; opacity: 0.85;
+  z-index: 100; pointer-events: none;
+}
+
+@media (max-height: 940px) {
+  .iphone { transform: scale(0.85); transform-origin: center; }
+}
+@media (max-height: 800px) {
+  .iphone { transform: scale(0.72); }
+}
