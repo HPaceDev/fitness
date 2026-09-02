@@ -65,16 +65,79 @@ docker compose version >/dev/null 2>&1 || die "Нет плагина docker comp
 export GIT_TERMINAL_PROMPT=0
 G() { git -c credential.helper= "$@"; }
 
-if [ -d "$APP_DIR/.git" ]; then
-  say "Обновляю исходники в $APP_DIR"
-  G -C "$APP_DIR" fetch --quiet origin "$BRANCH" || die "Не удалось скачать обновления с GitHub. Проверьте доступ к github.com с сервера: curl -I https://github.com"
-  G -C "$APP_DIR" checkout --quiet "$BRANCH"
-  G -C "$APP_DIR" reset --hard --quiet "origin/$BRANCH"
-else
-  say "Забираю исходники в $APP_DIR"
-  rm -rf "$APP_DIR"
-  G clone --quiet --branch "$BRANCH" "$REPO_URL" "$APP_DIR" || die "Не удалось скачать код с GitHub. Проверьте доступ к github.com с сервера: curl -I https://github.com"
-fi
+TARBALL_URL="https://codeload.github.com/HPaceDev/fitness/tar.gz/refs/heads/$BRANCH"
+SSH_REPO="git@github.com:HPaceDev/fitness.git"
+DEPLOY_KEY="/root/.ssh/fittrainer_deploy"
+
+# Заменяет содержимое $APP_DIR исходниками из архива, сохраняя .env
+unpack_tarball() {
+  local tmp; tmp="$(mktemp -d)"
+  curl -fsSL "$TARBALL_URL" -o "$tmp/src.tgz" || { rm -rf "$tmp"; return 1; }
+  mkdir -p "$APP_DIR"
+  [ -f "$APP_DIR/.env" ] && cp "$APP_DIR/.env" "$tmp/.env.keep"
+  find "$APP_DIR" -mindepth 1 -maxdepth 1 ! -name .env -exec rm -rf {} +
+  tar -xzf "$tmp/src.tgz" --strip-components=1 -C "$APP_DIR" || { rm -rf "$tmp"; return 1; }
+  [ -f "$tmp/.env.keep" ] && cp "$tmp/.env.keep" "$APP_DIR/.env"
+  rm -rf "$tmp"
+  return 0
+}
+
+fetch_sources() {
+  # 1. Обычный git по HTTPS
+  if [ -d "$APP_DIR/.git" ]; then
+    say "Обновляю исходники в $APP_DIR"
+    if G -C "$APP_DIR" fetch --quiet origin "$BRANCH" 2>/tmp/fittrainer-git.log; then
+      G -C "$APP_DIR" checkout --quiet "$BRANCH"
+      G -C "$APP_DIR" reset --hard --quiet "origin/$BRANCH"
+      return 0
+    fi
+    warn "git fetch не прошёл: $(tail -1 /tmp/fittrainer-git.log)"
+  else
+    say "Забираю исходники в $APP_DIR"
+    rm -rf "$APP_DIR.tmp"
+    if G clone --quiet --branch "$BRANCH" "$REPO_URL" "$APP_DIR.tmp" 2>/tmp/fittrainer-git.log; then
+      [ -f "$APP_DIR/.env" ] && cp "$APP_DIR/.env" "$APP_DIR.tmp/.env"
+      rm -rf "$APP_DIR"; mv "$APP_DIR.tmp" "$APP_DIR"
+      return 0
+    fi
+    warn "git clone не прошёл: $(tail -1 /tmp/fittrainer-git.log)"
+  fi
+
+  # 2. Архив с GitHub (другой хост, часто доступен, когда git по HTTPS нет)
+  say "Пробую скачать архив кода"
+  if unpack_tarball; then
+    printf '\033[1;32mАрхив скачан.\033[0m\n'
+    return 0
+  fi
+  warn "Архив тоже не скачался."
+
+  # 3. SSH с деплой-ключом
+  say "Последний способ — git по SSH с ключом сервера"
+  if [ ! -f "$DEPLOY_KEY" ]; then
+    mkdir -p /root/.ssh && chmod 700 /root/.ssh
+    ssh-keygen -q -t ed25519 -N "" -C "fittrainer-deploy@$(hostname)" -f "$DEPLOY_KEY"
+  fi
+  echo
+  echo "Добавьте этот ключ в репозиторий: https://github.com/HPaceDev/fitness/settings/keys"
+  echo "  Add deploy key → Title: сервер → Key: строка ниже → Allow write access НЕ ставить"
+  echo
+  cat "$DEPLOY_KEY.pub"
+  echo
+  read -rp "Когда ключ добавлен, нажмите Enter… " _
+  export GIT_SSH_COMMAND="ssh -i $DEPLOY_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+  rm -rf "$APP_DIR.tmp"
+  if git clone --quiet --branch "$BRANCH" "$SSH_REPO" "$APP_DIR.tmp"; then
+    [ -f "$APP_DIR/.env" ] && cp "$APP_DIR/.env" "$APP_DIR.tmp/.env"
+    rm -rf "$APP_DIR"; mv "$APP_DIR.tmp" "$APP_DIR"
+    # Чтобы git pull дальше работал без переменных окружения
+    git -C "$APP_DIR" config core.sshCommand "$GIT_SSH_COMMAND"
+    return 0
+  fi
+  return 1
+}
+
+fetch_sources || die "Код так и не скачался. Пришлите вывод команд: curl -I https://github.com ; curl -I $TARBALL_URL ; ssh -T git@github.com"
+
 cd "$APP_DIR"
 
 # --------------------------------------------------------------------------
@@ -182,8 +245,8 @@ cat <<FINAL
 Сертификат выпускается при первом обращении: если браузер ругается,
 подождите минуту и обновите страницу.
 
-Обновить после изменений в коде:
-  cd $APP_DIR && git pull && docker compose ${COMPOSE_ARGS[*]:-} up -d --build
+Обновить после изменений в коде (скрипт сам скачает свежий код и пересоберёт):
+  bash <(curl -fsSL https://raw.githubusercontent.com/HPaceDev/fitness/main/scripts/install-server.sh)
 
 Логи:            cd $APP_DIR && docker compose logs -f app
 Резервная копия: cd $APP_DIR && docker compose exec db pg_dump -U fittrainer fittrainer | gzip > backup-\$(date +%F).sql.gz
