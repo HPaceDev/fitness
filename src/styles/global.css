@@ -13,9 +13,10 @@
   --text-2: #a5a8b1;
   --text-3: #6f727a;
   --line: rgba(255, 255, 255, 0.09);
-  --accent: #c8ff3d;
-  --accent-ink: #0f1012;
-  --accent-soft: rgba(200, 255, 61, 0.14);
+  --accent: #b9e26b;
+  --accent-ink: #101208;
+  --accent-soft: rgba(185, 226, 107, 0.14);
+  --accent-glow: rgba(185, 226, 107, 0.12);
   --green: #5be084;
   --green-soft: rgba(91, 224, 132, 0.16);
   --green-text: #8ff0ae;
@@ -34,6 +35,7 @@
   --font: 'Manrope', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;
 }
+::selection { background: var(--accent); color: var(--accent-ink); }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
@@ -49,7 +51,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; border: 0; background: none; padding: 0; }
 a { color: inherit; text-decoration: none; }
 h1, h2, h3, p { margin: 0; }
-::selection { background: var(--accent); color: var(--accent-ink); }
 
 /* Стеклянная панель: общий рецепт */
 .glass, .card, .list, .stat, .pool, .workout, .day, .icon-btn, .seg, .chip, .field__input, .demo, .role-pick__item, .bday {
@@ -67,8 +68,8 @@ h1, h2, h3, p { margin: 0; }
   flex-direction: column;
   overflow: hidden;
   background:
-    radial-gradient(520px 380px at -10% -10%, rgba(200, 255, 61, 0.16), transparent 60%),
-    radial-gradient(420px 320px at 110% 30%, rgba(200, 255, 61, 0.07), transparent 60%),
+    radial-gradient(520px 380px at -10% -10%, var(--accent-glow), transparent 60%),
+    radial-gradient(420px 320px at 110% 30%, rgba(185, 226, 107, 0.05), transparent 60%),
     var(--bg);
 }
 .app__content {
@@ -146,7 +147,7 @@ h1, h2, h3, p { margin: 0; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .stat { border-radius: var(--radius); padding: 16px; min-width: 0; }
 .stat--accent { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-.stat--accent .stat__label, .stat--accent .stat__hint, .stat--accent .muted { color: rgba(15, 16, 18, 0.7); }
+.stat--accent .stat__label, .stat--accent .stat__hint, .stat--accent .muted { color: rgba(16, 18, 8, 0.65); }
 .stat__label { font-size: 11px; font-weight: 700; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.08em; }
 .stat__value { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; margin-top: 6px; overflow-wrap: anywhere; }
 .stat__hint { font-size: 12px; color: var(--text-2); margin-top: 4px; }
@@ -165,7 +166,7 @@ h1, h2, h3, p { margin: 0; }
 .day__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin-top: 1px; }
 .day--today .day__num { color: var(--accent); }
 .day--active { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-.day--active .day__wd { color: rgba(15, 16, 18, 0.65); }
+.day--active .day__wd { color: rgba(16, 18, 8, 0.6); }
 .day--active .day__num { color: var(--accent-ink); }
 .day--active .day__dot { background: var(--accent-ink); }
 
@@ -355,7 +356,7 @@ textarea.field__input { min-height: 72px; resize: vertical; }
 .hero__row-of { font-size: 14px; font-weight: 700; opacity: 0.6; }
 
 /* ---------- Напоминание о дне рождения ---------- */
-.bday { display: flex; align-items: center; gap: 12px; border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; background: var(--accent-soft); border-color: rgba(200,255,61,0.25); }
+.bday { display: flex; align-items: center; gap: 12px; border-radius: var(--radius); padding: 12px 14px; margin-bottom: 12px; background: var(--accent-soft); border-color: rgba(185,226,107,0.25); }
 .bday__icon { font-size: 24px; }
 .bday__title { font-weight: 800; }
 .bday__sub { font-size: 13px; color: var(--text-2); }

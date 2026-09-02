@@ -4,8 +4,8 @@
   height: 100dvh;
   overflow: hidden;
   background:
-    radial-gradient(700px 500px at 20% 10%, rgba(200,255,61,0.18), transparent 60%),
-    radial-gradient(600px 500px at 85% 80%, rgba(200,255,61,0.10), transparent 60%),
+    radial-gradient(700px 500px at 20% 10%, rgba(185,226,107,0.14), transparent 60%),
+    radial-gradient(600px 500px at 85% 80%, rgba(185,226,107,0.08), transparent 60%),
     #0a0b0c;
   display: flex; align-items: center; justify-content: center;
   padding: 16px;
@@ -16,7 +16,7 @@
   user-select: none;
 }
 .dev-stage__aside b { color: #e8e8ee; font-weight: 600; }
-.dev-stage__aside a { color: #c8ff3d; }
+.dev-stage__aside a { color: #b9e26b; }
 .dev-stage__aside code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; }
 
 .iphone {
