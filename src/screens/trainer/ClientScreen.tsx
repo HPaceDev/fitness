@@ -70,12 +70,12 @@ export function ClientScreen() {
         </button>
       </div>
       {client.note && (
-        <div className="card small" style={{ background: 'var(--yellow-soft)', boxShadow: 'none', marginBottom: 10 }}>
+        <div className="card small" style={{ background: 'var(--yellow-soft)', marginBottom: 10, color: 'var(--yellow-text)' }}>
           {client.note}
         </div>
       )}
       {!client.userId && (
-        <button className="card flex between" style={{ width: '100%', textAlign: 'left', marginBottom: 10, background: 'var(--accent-soft)', boxShadow: 'none' }} onClick={() => setInviting(true)}>
+        <button className="card flex between" style={{ width: '100%', textAlign: 'left', marginBottom: 10, background: 'var(--accent-soft)', color: 'var(--accent)' }} onClick={() => setInviting(true)}>
           <span className="small bold">Пригласить в приложение по ссылке</span>
           <span className="row__chevron">›</span>
         </button>

@@ -34,7 +34,7 @@ export function ProgressList({ items, onRemove }: { items: ExerciseProgress[]; o
             </button>
             {open &&
               p.history.map((e) => (
-                <div key={e.id} className="row" style={{ background: 'var(--surface-2)' }}>
+                <div key={e.id} className="row" style={{ background: 'rgba(255,255,255,0.04)' }}>
                   <div className="row__body">
                     <div className="small">{formatDateShort(parseLocal(e.date))}</div>
                     {e.note && <div className="row__sub">{e.note}</div>}

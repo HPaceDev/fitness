@@ -80,10 +80,10 @@ export function FinanceScreen() {
         </div>
         {fin.debtTotal > 0 && (
           <div className="stat stat--wide" style={{ background: 'var(--red-soft)' }}>
-            <div className="stat__label" style={{ color: 'var(--red)' }}>
+            <div className="stat__label" style={{ color: 'var(--red-text)' }}>
               Занимаются в долг
             </div>
-            <div className="stat__value num" style={{ fontSize: 20, color: 'var(--red)' }}>{formatMoney(fin.debtTotal)}</div>
+            <div className="stat__value num" style={{ fontSize: 20, color: 'var(--red-text)' }}>{formatMoney(fin.debtTotal)}</div>
             <div className="stat__hint">{fin.debtors.map((d) => d.client.name.split(' ')[0]).join(', ')}</div>
           </div>
         )}

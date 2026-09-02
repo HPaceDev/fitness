@@ -51,7 +51,7 @@ export function SubscriptionScreen() {
         <PoolCard key={p.key} pool={p} />
       ))}
 
-      <div className="card small muted mt12" style={{ boxShadow: 'none', background: 'var(--yellow-soft)', color: 'var(--text)' }}>
+      <div className="card small mt12" style={{ background: 'var(--yellow-soft)', color: 'var(--yellow-text)' }}>
         Оплата переводом тренеру на карту. После перевода тренер отмечает оплату, и занятия появятся здесь.
       </div>
 

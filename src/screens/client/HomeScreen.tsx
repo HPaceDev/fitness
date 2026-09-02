@@ -48,7 +48,7 @@ export function HomeScreen() {
         </div>
       </header>
 
-      <div className={`hero${stats.remainingTotal <= 0 ? '' : ' hero--dark'}`} style={stats.remainingTotal <= 0 ? { background: 'var(--red)' } : undefined}>
+      <div className={`hero${stats.remainingTotal <= 0 ? ' hero--alert' : ''}`}>
         <div className="hero__label">Осталось занятий</div>
         <div className="hero__rows">
           {stats.pools.map((p) => (
@@ -61,7 +61,7 @@ export function HomeScreen() {
             </div>
           ))}
         </div>
-        <div className="hero__sub">{stats.debtTotal > 0 ? 'Есть занятия в долг, загляните в «Абонемент»' : 'Подробности в разделе «Абонемент»'}</div>
+        <div className="hero__sub">{stats.debtTotal > 0 ? 'Есть занятия в долг, загляните в «Мои тренировки»' : 'Подробности в разделе «Мои тренировки»'}</div>
       </div>
 
       <div className="daystrip" style={{ marginTop: 14 }}>

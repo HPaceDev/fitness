@@ -45,10 +45,15 @@ export function WorkoutCard({ workout, onClick, extra, viewerClientId }: Props) 
       <div className="workout__body">
         <span className="workout__name">{workoutTitle(state, workout)}</span>
         <span className="workout__meta">
-          <span>{workout.durationMin} мин</span>
-          {group && <span>· группа, {group.memberIds.length} чел.</span>}
-          {!group && !viewerClientId && <span>· персональная</span>}
-          {workout.kind && workout.kind !== 'other' && <span>· {KIND_LABEL[workout.kind].toLowerCase()}</span>}
+          <span>
+            {[
+              `${workout.durationMin} мин`,
+              group ? `группа, ${group.memberIds.length} чел.` : !viewerClientId ? 'персональная' : null,
+              workout.kind && workout.kind !== 'other' ? KIND_LABEL[workout.kind].toLowerCase() : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          </span>
           {extra}
         </span>
       </div>

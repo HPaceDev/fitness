@@ -62,7 +62,7 @@ export function ExerciseSheet({ open, onClose, clientId, workoutId, defaultDate 
     <Sheet open={open} title="Записать прогресс" onClose={onClose}>
       <div className="form">
         {saved.length > 0 && (
-          <div className="card small" style={{ background: 'var(--green-soft)', boxShadow: 'none' }}>
+          <div className="card small" style={{ background: 'var(--green-soft)', color: 'var(--green-text)' }}>
             {saved.map((s, i) => (
               <div key={i}>✓ {s}</div>
             ))}

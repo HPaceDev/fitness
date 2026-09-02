@@ -41,7 +41,7 @@ export function InviteSheet({ open, onClose, clientId }: { open: boolean; onClos
         <p className="small muted">
           Отправьте ссылку {client.name.split(' ')[0]} в любом мессенджере. По ней откроется регистрация с уже заполненными именем и телефоном, а аккаунт сразу привяжется к этой карточке.
         </p>
-        <div className="card" style={{ background: 'var(--surface-2)', boxShadow: 'none', wordBreak: 'break-all', fontSize: 14 }}>
+        <div className="card" style={{ wordBreak: 'break-all', fontSize: 14 }}>
           {url ?? 'Создаём ссылку…'}
         </div>
         <button className="btn" disabled={!url} onClick={share}>

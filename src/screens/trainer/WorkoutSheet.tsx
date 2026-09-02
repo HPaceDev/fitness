@@ -52,7 +52,7 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
         </Link>
       )}
 
-      <div className="card" style={{ background: 'var(--surface-2)', boxShadow: 'none' }}>
+      <div className="card">
         <div className="flex between">
           <span className="muted">Когда</span>
           <span className="bold num">
