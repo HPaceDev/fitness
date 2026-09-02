@@ -8,7 +8,7 @@ import { makeAuthHook } from './auth.js'
 import { authRoutes } from './routes/auth.js'
 import { stateRoutes } from './routes/state.js'
 import { adminRoutes } from './routes/admin.js'
-import { DEMO_PASSWORD, DEMO_TRAINER_PHONE, ensureAdmin, seedDemo } from './seed.js'
+import { ensureAdmin, seedDemo } from './seed.js'
 
 const PORT = Number(process.env.PORT ?? 3000)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -24,16 +24,7 @@ async function main() {
   app.addHook('preHandler', makeAuthHook(db))
 
   app.get('/api/health', async () => ({ ok: true, db: kind }))
-  app.get('/api/config', async () => ({
-    demo: DEMO,
-    demoLogins: DEMO
-      ? [
-          { label: 'Тренер · Алексей', phone: DEMO_TRAINER_PHONE, password: DEMO_PASSWORD },
-          { label: 'Подопечный · Анна', phone: '79161234567', password: DEMO_PASSWORD },
-          { label: 'Подопечный · Игорь', phone: '79035551020', password: DEMO_PASSWORD },
-        ]
-      : [],
-  }))
+  app.get('/api/config', async () => ({ demo: DEMO }))
 
   authRoutes(app, db)
   stateRoutes(app, db)

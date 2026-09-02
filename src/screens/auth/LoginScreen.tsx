@@ -1,13 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { api } from '../../api/client'
-
-interface DemoLogin {
-  label: string
-  phone: string
-  password: string
-}
 
 export function LoginScreen() {
   const { login } = useAuth()
@@ -16,18 +9,11 @@ export function LoginScreen() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [demo, setDemo] = useState<DemoLogin[]>([])
 
-  useEffect(() => {
-    api<{ demo: boolean; demoLogins: DemoLogin[] }>('/api/config')
-      .then((c) => setDemo(c.demoLogins ?? []))
-      .catch(() => setDemo([]))
-  }, [])
-
-  const submit = async (ph = phone, pw = password) => {
+  const submit = async () => {
     setBusy(true)
     setError(null)
-    const r = await login(ph, pw)
+    const r = await login(phone, password)
     setBusy(false)
     if (!r.ok) setError(r.error)
   }
@@ -68,18 +54,6 @@ export function LoginScreen() {
           </button>
         </div>
 
-        {demo.length > 0 && (
-          <div className="demo">
-            <div className="demo__title">Демо-входы (пароль {demo[0]!.password})</div>
-            <div className="demo__row">
-              {demo.map((d, i) => (
-                <button key={d.phone} type="button" className={`chip${i === 0 ? ' chip--active' : ''}`} onClick={() => submit(d.phone, d.password)} disabled={busy}>
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </form>
     </div>
   )
