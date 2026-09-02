@@ -12,6 +12,7 @@ import { formatDateShort, formatDayLong, parseLocal, sessionsWord } from '../../
 import { formatMoney } from '../../utils/money'
 import { formatPhone } from '../../utils/phone'
 import { AddPaymentSheet, AddWorkoutSheet, ClientSheet } from './forms'
+import { InviteSheet } from './InviteSheet'
 import { WorkoutSheet } from './WorkoutSheet'
 
 export function ClientScreen() {
@@ -25,6 +26,7 @@ export function ClientScreen() {
   const [openWorkout, setOpenWorkout] = useState<Workout | null>(null)
   const [tab, setTab] = useState<'workouts' | 'payments' | 'progress'>('progress')
   const [logging, setLogging] = useState(false)
+  const [inviting, setInviting] = useState(false)
 
   const stats = useMemo(() => (client ? clientStats(state, client) : null), [state, client])
   const workouts = useMemo(
@@ -71,6 +73,12 @@ export function ClientScreen() {
         <div className="card small" style={{ background: 'var(--yellow-soft)', boxShadow: 'none', marginBottom: 10 }}>
           {client.note}
         </div>
+      )}
+      {!client.userId && (
+        <button className="card flex between" style={{ width: '100%', textAlign: 'left', marginBottom: 10, background: 'var(--accent-soft)', boxShadow: 'none' }} onClick={() => setInviting(true)}>
+          <span className="small bold">Пригласить в приложение по ссылке</span>
+          <span className="row__chevron">›</span>
+        </button>
       )}
       {groups.length > 0 && (
         <div className="chips" style={{ marginBottom: 12 }}>
@@ -177,6 +185,7 @@ export function ClientScreen() {
       <ClientSheet key={`e-${editing}`} open={editing} onClose={() => setEditing(false)} clientId={client.id} onRemoved={() => navigate('/clients')} />
       <WorkoutSheet workout={openWorkout} onClose={() => setOpenWorkout(null)} />
       <ExerciseSheet key={`ex-${logging}`} open={logging} onClose={() => setLogging(false)} clientId={client.id} />
+      <InviteSheet open={inviting} onClose={() => setInviting(false)} clientId={client.id} />
     </div>
   )
 }

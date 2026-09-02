@@ -5,6 +5,7 @@ import { Avatar } from '../../components/Avatar'
 import { formatPhone } from '../../utils/phone'
 import { formatMoney } from '../../utils/money'
 import { formatDateShort, parseLocal } from '../../utils/date'
+import { TelegramCard } from '../../components/TelegramCard'
 
 export function ProfileScreen() {
   const { user, logout } = useAuth()
@@ -63,6 +64,8 @@ export function ProfileScreen() {
           </div>
         )}
       </div>
+
+      <TelegramCard role="client" />
 
       <div className="btn-row" style={{ marginTop: 20 }}>
         <button className="btn btn--secondary" onClick={logout}>

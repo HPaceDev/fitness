@@ -34,11 +34,24 @@ bash <(curl -fsSL https://raw.githubusercontent.com/HPaceDev/fitness/main/script
 Let's Encrypt. Без своего домена используется адрес вида
 `fit-1-2-3-4.sslip.io`.
 
-Обновление после изменений в коде:
+Обновление после изменений в коде: тот же скрипт. Автоматически при пуше в
+`main`: один раз запустить на сервере `bash /opt/fittrainer/scripts/setup-autodeploy.sh`
+и добавить в секреты репозитория то, что он напечатает (`SSH_HOST`, `SSH_KEY`).
+Дальше GitHub Actions (`.github/workflows/deploy.yml`) обновляет сервер сам.
 
-```bash
-cd /opt/fittrainer && git pull && docker compose up -d --build
-```
+## Уведомления в Telegram
+
+Создайте бота у @BotFather, вставьте токен в `/opt/fittrainer/.env`
+(`TELEGRAM_BOT_TOKEN=...`) и перезапустите скрипт установки. В приложении
+появится кнопка «Подключить Telegram» (тренеру на «Финансах», подопечному в
+«Профиле»). Что приходит:
+
+- подопечному: за два часа до тренировки, вечером о тренировке завтра,
+  когда абонемент кончается или осталось одно занятие;
+- тренеру: вечером план на завтра, утром дни рождения (в день и за три дня),
+  у кого заканчивается абонемент.
+
+Время по `TZ` из `.env`, по умолчанию Москва.
 
 ## Роли и вход
 
@@ -87,7 +100,9 @@ server/                 API
   src/db/schema.ts      таблицы (Drizzle ORM), миграции в server/drizzle
   src/actions.ts        действия тренера с проверкой владельца
   src/state.ts          состояние кабинета для тренера и для подопечного
-  src/routes/           auth, state, admin
+  src/routes/           auth, state, admin, invite (приглашения и Telegram)
+  src/telegram.ts       бот: привязка по /start <код>, отправка сообщений
+  src/notifications.ts  планировщик напоминаний
   src/seed.ts           демо-данные и администратор
 scripts/install-server.sh  установка на сервер одной командой
 Dockerfile, docker-compose.yml, Caddyfile

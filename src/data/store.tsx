@@ -12,6 +12,7 @@ export type Action =
   | { type: 'client/add'; client: Client }
   | { type: 'client/update'; id: string; patch: Partial<Omit<Client, 'id'>> }
   | { type: 'client/remove'; id: string }
+  | { type: 'client/invite'; id: string }
   | { type: 'group/add'; group: Group }
   | { type: 'group/update'; id: string; patch: Partial<Omit<Group, 'id'>> }
   | { type: 'group/remove'; id: string }
@@ -33,6 +34,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, clients: [...state.clients, action.client] }
     case 'client/update':
       return { ...state, clients: state.clients.map((c) => (c.id === action.id ? { ...c, ...action.patch } : c)) }
+    case 'client/invite':
+      return state // токен придёт с сервера
     case 'client/remove':
       return {
         ...state,

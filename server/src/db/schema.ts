@@ -10,6 +10,9 @@ export const users = pgTable('users', {
   blocked: boolean('blocked').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
+  /** Telegram: чат для уведомлений и одноразовый код привязки */
+  telegramChatId: text('telegram_chat_id'),
+  telegramLinkCode: text('telegram_link_code').unique(),
 })
 
 export const sessions = pgTable('sessions', {
@@ -37,6 +40,8 @@ export const clients = pgTable('clients', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   /** Учётная запись подопечного, если он зарегистрировался */
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+  /** Ссылка-приглашение в приложение: /#/join/<token> */
+  inviteToken: text('invite_token').unique(),
 })
 
 export const groups = pgTable('groups', {
@@ -88,6 +93,8 @@ export const workouts = pgTable('workouts', {
   groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
   startsAt: timestamp('starts_at', { withTimezone: true }).notNull(),
   durationMin: integer('duration_min').notNull(),
+  /** Вид: strength | cardio | functional | stretching | other */
+  kind: text('kind').notNull().default('strength'),
   status: text('status').notNull().default('planned'),
   attendance: jsonb('attendance').$type<Record<string, 'present' | 'missed' | 'excused'>>(),
   note: text('note'),
@@ -114,4 +121,10 @@ export const exerciseEntries = pgTable('exercise_entries', {
   sets: integer('sets'),
   note: text('note'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/** Отправленные уведомления, чтобы не слать одно и то же дважды */
+export const notificationsSent = pgTable('notifications_sent', {
+  key: text('key').primaryKey(),
+  sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
 })

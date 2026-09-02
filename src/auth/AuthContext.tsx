@@ -7,6 +7,8 @@ export interface RegisterInput {
   name: string
   phone: string
   password: string
+  /** Токен ссылки-приглашения от тренера */
+  invite?: string
 }
 
 type Result = { ok: true } | { ok: false; error: string }
@@ -15,7 +17,7 @@ interface AuthValue {
   user: User | null
   /** true, пока проверяем сохранённый токен */
   loading: boolean
-  login: (phone: string, password: string) => Promise<Result>
+  login: (phone: string, password: string, invite?: string) => Promise<Result>
   register: (input: RegisterInput) => Promise<Result>
   logout: () => Promise<void>
 }
@@ -38,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const login = useCallback<AuthValue['login']>(async (phone, password) => {
+  const login = useCallback<AuthValue['login']>(async (phone, password, invite) => {
     try {
-      const r = await api<{ token: string; user: User }>('/api/auth/login', { body: { phone, password } })
+      const r = await api<{ token: string; user: User }>('/api/auth/login', { body: { phone, password, invite } })
       setToken(r.token)
       setUser(r.user)
       return { ok: true }

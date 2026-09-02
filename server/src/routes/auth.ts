@@ -4,14 +4,16 @@ import { z } from 'zod'
 import type { Db } from '../db/index.js'
 import { schema } from '../db/index.js'
 import { checkPassword, createSession, destroySession, hashPassword, newId, normalizePhone, requireRole } from '../auth.js'
+import { applyInvite } from './invite.js'
 
 const RegisterSchema = z.object({
   role: z.enum(['trainer', 'client']),
   name: z.string().trim().min(2).max(120),
   phone: z.string().min(10).max(32),
   password: z.string().min(4).max(200),
+  invite: z.string().max(64).optional(),
 })
-const LoginSchema = z.object({ phone: z.string().min(1), password: z.string().min(1) })
+const LoginSchema = z.object({ phone: z.string().min(1), password: z.string().min(1), invite: z.string().max(64).optional() })
 
 export function authRoutes(app: FastifyInstance, db: Db) {
   app.post('/api/auth/register', async (req, reply) => {
@@ -33,6 +35,7 @@ export function authRoutes(app: FastifyInstance, db: Db) {
         .update(schema.clients)
         .set({ userId: id })
         .where(and(eq(schema.clients.phone, phone), isNull(schema.clients.userId)))
+      await applyInvite(db, parsed.data.invite, id)
     }
 
     const token = await createSession(db, id)
@@ -47,6 +50,7 @@ export function authRoutes(app: FastifyInstance, db: Db) {
     if (!u) return reply.code(404).send({ error: 'Пользователь с таким телефоном не найден' })
     if (!(await checkPassword(parsed.data.password, u.passwordHash))) return reply.code(401).send({ error: 'Неверный пароль' })
     if (u.blocked) return reply.code(403).send({ error: 'Аккаунт заблокирован' })
+    if (u.role === 'client') await applyInvite(db, parsed.data.invite, u.id)
     const token = await createSession(db, u.id)
     await db.update(schema.users).set({ lastSeenAt: new Date() }).where(eq(schema.users.id, u.id))
     return { token, user: { id: u.id, role: u.role, name: u.name, phone: u.phone } }

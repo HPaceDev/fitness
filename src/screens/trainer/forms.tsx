@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useStore } from '../../data/store'
 import { Sheet } from '../../components/Sheet'
 import { clientById, groupById, groupsOfClient } from '../../data/selectors'
-import type { Client, Group } from '../../data/types'
+import type { Client, Group, WorkoutKind } from '../../data/types'
+import { KIND_LABEL } from '../../data/types'
 import { toLocalInput, sessionsWord } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
 import { uid } from '../../utils/id'
@@ -330,6 +331,7 @@ export function AddWorkoutSheet({
     return toLocalInput(d)
   })
   const [duration, setDuration] = useState(60)
+  const [kindSel, setKindSel] = useState<WorkoutKind>(groupId ? 'functional' : 'strength')
   const [repeatWeeks, setRepeatWeeks] = useState(0)
 
   const fixed = !!clientId || !!groupId
@@ -349,6 +351,7 @@ export function AddWorkoutSheet({
           groupId: kind === 'group' ? group : undefined,
           startsAt: d.toISOString(),
           durationMin: duration,
+          kind: kindSel,
           status: 'planned',
         },
       })
@@ -393,6 +396,16 @@ export function AddWorkoutSheet({
             </select>
           </label>
         )}
+        <div className="field">
+          <span className="field__label">Какая тренировка</span>
+          <div className="chips">
+            {(['strength', 'cardio', 'functional', 'stretching'] as WorkoutKind[]).map((k) => (
+              <button key={k} className={`chip${kindSel === k ? ' chip--active' : ''}`} onClick={() => setKindSel(k)}>
+                {KIND_LABEL[k]}
+              </button>
+            ))}
+          </div>
+        </div>
         <label className="field">
           <span className="field__label">Дата и время</span>
           <input className="field__input" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />

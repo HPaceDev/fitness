@@ -23,6 +23,8 @@ export interface Client {
   createdAt: string
   /** Связь с учётной записью подопечного, если он зарегистрировался */
   userId?: ID
+  /** Токен ссылки-приглашения, виден только тренеру */
+  inviteToken?: string
 }
 
 export interface Group {
@@ -47,6 +49,17 @@ export interface Payment {
 
 export type WorkoutStatus = 'planned' | 'done' | 'cancelled' | 'missed'
 
+/** Вид тренировки */
+export type WorkoutKind = 'strength' | 'cardio' | 'functional' | 'stretching' | 'other'
+
+export const KIND_LABEL: Record<WorkoutKind, string> = {
+  strength: 'Силовая',
+  cardio: 'Кардио',
+  functional: 'Функциональная',
+  stretching: 'Растяжка',
+  other: 'Другое',
+}
+
 /** Отметка участника групповой тренировки */
 export type Attendance = 'present' | 'missed' | 'excused'
 
@@ -58,6 +71,7 @@ export interface Workout {
   groupId?: ID
   startsAt: string // ISO
   durationMin: number
+  kind?: WorkoutKind
   status: WorkoutStatus
   /** Для групповой: кто был. Заполняется при отметке «проведена». */
   attendance?: Record<ID, Attendance>

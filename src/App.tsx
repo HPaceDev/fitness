@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './auth/AuthContext'
 import { TabBar } from './components/TabBar'
 import { LoginScreen } from './screens/auth/LoginScreen'
 import { RegisterScreen } from './screens/auth/RegisterScreen'
+import { JoinScreen } from './screens/auth/JoinScreen'
 import { ScheduleScreen } from './screens/trainer/ScheduleScreen'
 import { ClientsScreen } from './screens/trainer/ClientsScreen'
 import { ClientScreen } from './screens/trainer/ClientScreen'
@@ -42,6 +43,7 @@ function Shell() {
         <Routes>
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
+          <Route path="/join/:token" element={<JoinScreen />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

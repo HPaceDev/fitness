@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { useStore } from '../data/store'
 import { clientById, groupById } from '../data/selectors'
 import type { Workout } from '../data/types'
+import { KIND_LABEL } from '../data/types'
 import { formatTime, parseLocal } from '../utils/date'
 import { StatusPill, AttendancePill } from './StatusPill'
 
@@ -47,6 +48,7 @@ export function WorkoutCard({ workout, onClick, extra, viewerClientId }: Props) 
           <span>{workout.durationMin} мин</span>
           {group && <span>· группа, {group.memberIds.length} чел.</span>}
           {!group && !viewerClientId && <span>· персональная</span>}
+          {workout.kind && workout.kind !== 'other' && <span>· {KIND_LABEL[workout.kind].toLowerCase()}</span>}
           {extra}
         </span>
       </div>

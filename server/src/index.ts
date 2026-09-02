@@ -9,6 +9,9 @@ import { authRoutes } from './routes/auth.js'
 import { stateRoutes } from './routes/state.js'
 import { adminRoutes } from './routes/admin.js'
 import { ensureAdmin, seedDemo } from './seed.js'
+import { inviteRoutes } from './routes/invite.js'
+import { getBotUsername, startTelegram, telegramEnabled } from './telegram.js'
+import { startNotifications } from './notifications.js'
 
 const PORT = Number(process.env.PORT ?? 3000)
 const HOST = process.env.HOST ?? '0.0.0.0'
@@ -24,11 +27,12 @@ async function main() {
   app.addHook('preHandler', makeAuthHook(db))
 
   app.get('/api/health', async () => ({ ok: true, db: kind }))
-  app.get('/api/config', async () => ({ demo: DEMO }))
+  app.get('/api/config', async () => ({ demo: DEMO, telegram: telegramEnabled, telegramBot: getBotUsername() }))
 
   authRoutes(app, db)
   stateRoutes(app, db)
   adminRoutes(app, db)
+  inviteRoutes(app, db)
 
   app.setNotFoundHandler((req, reply) => {
     if (req.url.startsWith('/api/')) return reply.code(404).send({ error: 'Не найдено' })
@@ -46,6 +50,8 @@ async function main() {
   }
 
   await app.listen({ port: PORT, host: HOST })
+  await startTelegram(db)
+  startNotifications(db)
 }
 
 main().catch((e) => {

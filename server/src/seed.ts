@@ -92,6 +92,7 @@ export async function seedDemo(db: Db) {
     groupId,
     startsAt,
     durationMin,
+    kind: groupId ? 'functional' : durationMin >= 90 ? 'strength' : startsAt.getHours() >= 18 ? 'cardio' : 'strength',
     status,
     attendance: attendance ?? null,
   })

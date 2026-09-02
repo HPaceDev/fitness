@@ -1,0 +1,36 @@
+# Автодеплой: при каждом пуше в main заходим на сервер по SSH и запускаем
+# установщик в тихом режиме. Нужны секреты репозитория: SSH_HOST, SSH_KEY
+# (см. scripts/setup-autodeploy.sh, он всё подготовит и подскажет).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Настроить SSH
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          test -n "$SSH_KEY" || { echo "Нет секрета SSH_KEY: запустите scripts/setup-autodeploy.sh на сервере"; exit 1; }
+          test -n "$SSH_HOST" || { echo "Нет секрета SSH_HOST"; exit 1; }
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Обновить сервер
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER || 'root' }}
+        run: |
+          ssh -i ~/.ssh/deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
+            'NONINTERACTIVE=1 bash <(curl -fsSL "https://raw.githubusercontent.com/HPaceDev/fitness/main/scripts/install-server.sh?$(date +%s)")'

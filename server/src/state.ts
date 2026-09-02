@@ -13,6 +13,7 @@ export interface ClientDto {
   birthday?: string
   createdAt: string
   userId?: string
+  inviteToken?: string
 }
 export interface ExerciseDto {
   id: string
@@ -47,6 +48,7 @@ export interface WorkoutDto {
   groupId?: string
   startsAt: string
   durationMin: number
+  kind: string
   status: string
   attendance?: Record<string, 'present' | 'missed' | 'excused'>
   note?: string
@@ -73,6 +75,7 @@ function toClient(c: typeof schema.clients.$inferSelect): ClientDto {
     birthday: und(c.birthday),
     createdAt: c.createdAt.toISOString(),
     userId: und(c.userId),
+    inviteToken: und(c.inviteToken),
   }
 }
 function toExercise(e: typeof schema.exerciseEntries.$inferSelect): ExerciseDto {
@@ -98,6 +101,7 @@ function toWorkout(w: typeof schema.workouts.$inferSelect): WorkoutDto {
     groupId: und(w.groupId),
     startsAt: w.startsAt.toISOString(),
     durationMin: w.durationMin,
+    kind: w.kind,
     status: w.status,
     attendance: und(w.attendance),
     note: und(w.note),
@@ -167,7 +171,7 @@ export async function clientState(db: Db, userId: string): Promise<StateDto | nu
   const exerciseRows = await db.select().from(schema.exerciseEntries).where(eq(schema.exerciseEntries.clientId, me.id))
   return {
     trainer: { id: trainer!.id, name: trainer!.name, phone: trainer!.phone },
-    clients: [toClient(me)],
+    clients: [{ ...toClient(me), inviteToken: undefined }],
     groups: await groupsWithMembers(db, groupRows),
     payments: paymentRows.map(toPayment),
     workouts: workoutRows.map(toWorkout),

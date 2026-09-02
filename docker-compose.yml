@@ -31,6 +31,8 @@ services:
       DEMO: ${DEMO:-0}
       ADMIN_PHONE: ${ADMIN_PHONE:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TZ: ${TZ:-Europe/Moscow}
     ports:
       # Только localhost сервера. Снаружи трафик приходит через Caddy.
       - "${APP_BIND:-127.0.0.1:3100}:3000"

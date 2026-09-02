@@ -6,6 +6,7 @@ import { clientById, groupById, monthFinance } from '../../data/selectors'
 import { Avatar } from '../../components/Avatar'
 import { formatDateShort, formatMonth, isSameMonth, parseLocal, plural, sessionsWord } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
+import { TelegramCard } from '../../components/TelegramCard'
 
 export function FinanceScreen() {
   const { state } = useStore()
@@ -123,8 +124,9 @@ export function FinanceScreen() {
       </section>
 
       <section className="section">
-        <div className="section__title">Аккаунт и данные</div>
-        <div className="card small muted">
+        <div className="section__title">Аккаунт</div>
+        <TelegramCard role="trainer" />
+        <div className="card small muted" style={{ marginTop: 10 }}>
           {state.trainer ? `${state.trainer.name} · ${state.trainer.phone}` : ''}
           <div className="btn-row">
             <button className="btn btn--secondary btn--sm" onClick={logout}>

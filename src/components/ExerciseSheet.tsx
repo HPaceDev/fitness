@@ -4,6 +4,7 @@ import { formatEntry, knownExercises, lastEntryFor } from '../data/selectors'
 import { Sheet } from './Sheet'
 import { formatDateShort, parseLocal, toLocalInput } from '../utils/date'
 import { uid } from '../utils/id'
+import { catalogNames } from '../data/exercises'
 
 interface Props {
   open: boolean
@@ -27,7 +28,10 @@ export function ExerciseSheet({ open, onClose, clientId, workoutId, defaultDate 
   const [date, setDate] = useState(defaultDate ?? toLocalInput(new Date()).slice(0, 10))
   const [saved, setSaved] = useState<string[]>([])
 
-  const suggestions = useMemo(() => knownExercises(state), [state])
+  const suggestions = useMemo(() => {
+    const own = knownExercises(state)
+    return [...own, ...catalogNames(own)]
+  }, [state])
   const last = useMemo(() => (exercise.trim() ? lastEntryFor(state, clientId, exercise) : undefined), [state, clientId, exercise])
 
   const valid = exercise.trim().length > 0 && (weight !== '' || reps !== '')

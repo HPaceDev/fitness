@@ -32,6 +32,14 @@ IP_DASHED="${SERVER_IP//./-}"
 # --------------------------------------------------------------------------
 
 DOMAIN="${DOMAIN:-}"
+NONINTERACTIVE="${NONINTERACTIVE:-0}"
+# Повторный запуск (в том числе из GitHub Actions): адрес берём из .env
+if [ -z "$DOMAIN" ] && [ -f "$APP_DIR/.env" ]; then
+  DOMAIN="$(grep '^DOMAIN=' "$APP_DIR/.env" | cut -d= -f2- || true)"
+fi
+if [ -z "$DOMAIN" ] && [ "$NONINTERACTIVE" = "1" ]; then
+  DOMAIN="fit-$IP_DASHED.sslip.io"
+fi
 if [ -z "$DOMAIN" ]; then
   echo
   echo "По какому адресу открывать FitTrainer?"
@@ -45,7 +53,9 @@ APP_URL="https://$DOMAIN"
 DOMAIN_IP="$(getent hosts "$DOMAIN" 2>/dev/null | awk '{print $1; exit}' || echo '')"
 if [ -n "$DOMAIN_IP" ] && [ "$DOMAIN_IP" != "$SERVER_IP" ]; then
   warn "Домен $DOMAIN указывает на $DOMAIN_IP, а сервер — $SERVER_IP. Сертификат не выпустится, пока DNS не обновится."
-  read -rp "Продолжить всё равно? [y/N] " a; [ "$a" = "y" ] || [ "$a" = "Y" ] || die "Остановлено"
+  if [ "$NONINTERACTIVE" != "1" ]; then
+    read -rp "Продолжить всё равно? [y/N] " a; [ "$a" = "y" ] || [ "$a" = "Y" ] || die "Остановлено"
+  fi
 elif [ -z "$DOMAIN_IP" ]; then
   warn "Домен $DOMAIN пока не разрешается. Сертификат появится после настройки DNS."
 fi
@@ -117,6 +127,7 @@ fetch_sources() {
     mkdir -p /root/.ssh && chmod 700 /root/.ssh
     ssh-keygen -q -t ed25519 -N "" -C "fittrainer-deploy@$(hostname)" -f "$DEPLOY_KEY"
   fi
+  [ "$NONINTERACTIVE" != "1" ] || die "Код не скачался ни git, ни архивом"
   echo
   echo "Добавьте этот ключ в репозиторий: https://github.com/HPaceDev/fitness/settings/keys"
   echo "  Add deploy key → Title: сервер → Key: строка ниже → Allow write access НЕ ставить"
@@ -150,12 +161,15 @@ if [ -f .env ]; then
   grep -q '^DOMAIN=' .env || echo "DOMAIN=$DOMAIN" >> .env
   ADMIN_PASSWORD="$(grep '^ADMIN_PASSWORD=' .env | cut -d= -f2-)"
   ADMIN_PHONE="$(grep '^ADMIN_PHONE=' .env | cut -d= -f2-)"
+  grep -q '^TELEGRAM_BOT_TOKEN=' .env || echo "TELEGRAM_BOT_TOKEN=" >> .env
+  grep -q '^TZ=' .env || echo "TZ=Europe/Moscow" >> .env
 else
   say "Создаю .env со случайными паролями"
   ADMIN_PHONE="${ADMIN_PHONE:-}"
-  if [ -z "$ADMIN_PHONE" ]; then
+  if [ -z "$ADMIN_PHONE" ] && [ "$NONINTERACTIVE" != "1" ]; then
     read -rp "Ваш телефон для входа в админку (например 79991234567): " ADMIN_PHONE
   fi
+  [ -n "$ADMIN_PHONE" ] || die "Первый запуск нужно сделать вручную: скрипт спросит телефон администратора"
   ADMIN_PHONE="$(echo "$ADMIN_PHONE" | tr -cd '0-9')"
   [ "${#ADMIN_PHONE}" = "11" ] || die "Телефон должен быть из 11 цифр, например 79991234567"
   ADMIN_PASSWORD="$(openssl rand -base64 12 | tr -d '/+=' | cut -c1-12)"
@@ -167,6 +181,9 @@ DOMAIN=$DOMAIN
 DEMO=1
 ADMIN_PHONE=$ADMIN_PHONE
 ADMIN_PASSWORD=$ADMIN_PASSWORD
+# Токен бота от @BotFather — включает уведомления в Telegram
+TELEGRAM_BOT_TOKEN=
+TZ=Europe/Moscow
 ENV
   umask 022
 fi
@@ -248,6 +265,8 @@ cat <<FINAL
 Обновить после изменений в коде (скрипт сам скачает свежий код и пересоберёт):
   bash <(curl -fsSL https://raw.githubusercontent.com/HPaceDev/fitness/main/scripts/install-server.sh)
 
+Автодеплой при пуше в main:  bash $APP_DIR/scripts/setup-autodeploy.sh
+Telegram-уведомления:         вписать токен бота в $APP_DIR/.env (TELEGRAM_BOT_TOKEN=...) и перезапустить скрипт
 Логи:            cd $APP_DIR && docker compose logs -f app
 Резервная копия: cd $APP_DIR && docker compose exec db pg_dump -U fittrainer fittrainer | gzip > backup-\$(date +%F).sql.gz
 Отключить демо:  в $APP_DIR/.env поставить DEMO=0 и перезапустить (демо-тренера удалить через админку)

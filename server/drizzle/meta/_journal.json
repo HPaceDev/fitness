@@ -15,6 +15,13 @@
       "when": 1788382666099,
       "tag": "0001_exercises_birthday",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788383473004,
+      "tag": "0002_kind_invite_telegram",
+      "breakpoints": true
     }
   ]
 }

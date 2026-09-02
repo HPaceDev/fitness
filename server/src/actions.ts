@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { Db } from './db/index.js'
 import { schema } from './db/index.js'
 import { normalizePhone } from './auth.js'
+import { randomBytes } from 'node:crypto'
 
 /**
  * Действия тренера. Формат повторяет Action из фронтенда (src/data/store.tsx),
@@ -13,6 +14,7 @@ import { normalizePhone } from './auth.js'
 const id = z.string().min(1).max(64)
 const attendance = z.enum(['present', 'missed', 'excused'])
 const status = z.enum(['planned', 'done', 'cancelled', 'missed'])
+const kind = z.enum(['strength', 'cardio', 'functional', 'stretching', 'other'])
 
 const clientFields = {
   name: z.string().trim().min(1).max(120),
@@ -31,6 +33,7 @@ export const ActionSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('client/add'), client: z.object({ id, createdAt: z.string().optional(), userId: z.string().optional(), ...clientFields }) }),
   z.object({ type: z.literal('client/update'), id, patch: z.object(clientFields).partial() }),
   z.object({ type: z.literal('client/remove'), id }),
+  z.object({ type: z.literal('client/invite'), id }),
   z.object({ type: z.literal('group/add'), group: z.object({ id, createdAt: z.string().optional(), memberIds: z.array(id).optional(), ...groupFields }) }),
   z.object({ type: z.literal('group/update'), id, patch: z.object(groupFields).partial() }),
   z.object({ type: z.literal('group/remove'), id }),
@@ -57,6 +60,7 @@ export const ActionSchema = z.discriminatedUnion('type', [
       groupId: id.optional(),
       startsAt: z.string().datetime({ offset: true }),
       durationMin: z.number().int().min(5).max(600),
+      kind: kind.optional(),
       status: status.optional(),
       note: z.string().max(2000).optional(),
     }),
@@ -66,7 +70,7 @@ export const ActionSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('workout/update'),
     id,
-    patch: z.object({ startsAt: z.string().datetime({ offset: true }), durationMin: z.number().int().min(5).max(600), note: z.string().max(2000).optional() }).partial(),
+    patch: z.object({ startsAt: z.string().datetime({ offset: true }), durationMin: z.number().int().min(5).max(600), kind, note: z.string().max(2000).optional() }).partial(),
   }),
   z.object({ type: z.literal('workout/remove'), id }),
   z.object({
@@ -167,6 +171,12 @@ export async function applyAction(db: Db, trainerId: string, action: Action): Pr
       await ownClient(db, trainerId, action.id)
       await db.delete(schema.clients).where(eq(schema.clients.id, action.id))
       return
+    case 'client/invite': {
+      const c = await ownClient(db, trainerId, action.id)
+      if (c.inviteToken) return
+      await db.update(schema.clients).set({ inviteToken: randomBytes(9).toString('base64url') }).where(eq(schema.clients.id, action.id))
+      return
+    }
     case 'group/add':
       await db.insert(schema.groups).values({ id: action.group.id, trainerId, name: action.group.name, pricePerSession: action.group.pricePerSession })
       return
@@ -229,6 +239,7 @@ export async function applyAction(db: Db, trainerId: string, action: Action): Pr
         groupId: w.groupId ?? null,
         startsAt: new Date(w.startsAt),
         durationMin: w.durationMin,
+        kind: w.kind ?? 'strength',
         status: w.status ?? 'planned',
         note: w.note ?? null,
       })
@@ -261,6 +272,7 @@ export async function applyAction(db: Db, trainerId: string, action: Action): Pr
         .set({
           ...(p.startsAt !== undefined && { startsAt: new Date(p.startsAt) }),
           ...(p.durationMin !== undefined && { durationMin: p.durationMin }),
+          ...(p.kind !== undefined && { kind: p.kind }),
           ...(p.note !== undefined && { note: p.note || null }),
         })
         .where(eq(schema.workouts.id, action.id))
