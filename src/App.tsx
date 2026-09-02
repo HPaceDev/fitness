@@ -12,7 +12,7 @@ import { FinanceScreen } from './screens/trainer/FinanceScreen'
 import { HomeScreen } from './screens/client/HomeScreen'
 import { SubscriptionScreen } from './screens/client/SubscriptionScreen'
 import { ProfileScreen } from './screens/client/ProfileScreen'
-import { AdminScreen } from './screens/admin/AdminScreen'
+import { AdminApp } from './screens/admin/AdminApp'
 
 function Splash({ text }: { text: string }) {
   return (
@@ -48,16 +48,7 @@ function Shell() {
     )
   }
 
-  if (user.role === 'admin') {
-    return (
-      <div className="app">
-        <Routes>
-          <Route path="/admin" element={<AdminScreen />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </div>
-    )
-  }
+  if (user.role === 'admin') return <Navigate to="/admin" replace />
 
   if (user.role === 'trainer') {
     return (
@@ -100,7 +91,10 @@ export function App() {
   return (
     <HashRouter>
       <AuthProvider>
-        <Shell />
+        <Routes>
+          <Route path="/admin/*" element={<AdminApp />} />
+          <Route path="*" element={<Shell />} />
+        </Routes>
       </AuthProvider>
     </HashRouter>
   )
