@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { HashRouter, Route, Routes } from 'react-router-dom'
 import { StoreProvider } from './data/store'
 import { TabBar } from './components/TabBar'
 import { ScheduleScreen } from './screens/ScheduleScreen'
@@ -9,7 +9,7 @@ import { FinanceScreen } from './screens/FinanceScreen'
 export function App() {
   return (
     <StoreProvider>
-      <BrowserRouter>
+      <HashRouter>
         <div className="app">
           <Routes>
             <Route path="/" element={<ScheduleScreen />} />
@@ -19,7 +19,7 @@ export function App() {
           </Routes>
           <TabBar />
         </div>
-      </BrowserRouter>
+      </HashRouter>
     </StoreProvider>
   )
 }
