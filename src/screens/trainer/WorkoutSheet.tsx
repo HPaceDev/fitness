@@ -5,13 +5,16 @@ import type { Attendance, Workout, WorkoutStatus } from '../../data/types'
 import { Avatar } from '../../components/Avatar'
 import { Sheet } from '../../components/Sheet'
 import { StatusPill, SessionsPill, ATTENDANCE_LABEL } from '../../components/StatusPill'
-import { formatDayLong, formatTime, parseLocal } from '../../utils/date'
+import { formatDayLong, formatTime, parseLocal, toDateKey } from '../../utils/date'
+import { ExerciseSheet } from '../../components/ExerciseSheet'
+import { useState } from 'react'
 
 const ATT: Attendance[] = ['present', 'missed', 'excused']
 
 /** Карточка тренировки для тренера: статус, участники, удаление */
 export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; onClose: () => void }) {
   const { state, dispatch } = useStore()
+  const [logging, setLogging] = useState(false)
   if (!workout) return null
   // Берём свежую версию из состояния, чтобы отметки обновлялись
   const w = state.workouts.find((x) => x.id === workout.id) ?? workout
@@ -93,6 +96,17 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
           </div>
           <p className="field__hint mt8">«Был» и «Пропуск» списывают занятие с абонемента на группу, «Не считать» — нет.</p>
         </section>
+      )}
+
+      {client && (w.status === 'done' || w.status === 'planned') && (
+        <div className="btn-row">
+          <button className="btn btn--secondary" onClick={() => setLogging(true)}>
+            🏋️ Записать прогресс
+          </button>
+        </div>
+      )}
+      {client && (
+        <ExerciseSheet key={`ex-${logging}`} open={logging} onClose={() => setLogging(false)} clientId={client.id} workoutId={w.id} defaultDate={toDateKey(start)} />
       )}
 
       {w.status === 'planned' ? (

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { AppState, Attendance, Client, Group, Payment, Workout, WorkoutStatus } from './types'
+import type { AppState, Attendance, Client, ExerciseEntry, Group, Payment, Workout, WorkoutStatus } from './types'
 import { api, ApiError } from '../api/client'
 
 /**
@@ -24,6 +24,8 @@ export type Action =
   | { type: 'workout/setAttendance'; id: string; clientId: string; value: Attendance }
   | { type: 'workout/update'; id: string; patch: Partial<Omit<Workout, 'id'>> }
   | { type: 'workout/remove'; id: string }
+  | { type: 'exercise/add'; entry: ExerciseEntry }
+  | { type: 'exercise/remove'; id: string }
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -38,6 +40,7 @@ export function reducer(state: AppState, action: Action): AppState {
         groups: state.groups.map((g) => ({ ...g, memberIds: g.memberIds.filter((m) => m !== action.id) })),
         payments: state.payments.filter((p) => p.clientId !== action.id),
         workouts: state.workouts.filter((w) => w.clientId !== action.id),
+        exercises: state.exercises.filter((e) => e.clientId !== action.id),
       }
     case 'group/add':
       return { ...state, groups: [...state.groups, action.group] }
@@ -94,10 +97,14 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, workouts: state.workouts.map((w) => (w.id === action.id ? { ...w, ...action.patch } : w)) }
     case 'workout/remove':
       return { ...state, workouts: state.workouts.filter((w) => w.id !== action.id) }
+    case 'exercise/add':
+      return { ...state, exercises: [...state.exercises, action.entry] }
+    case 'exercise/remove':
+      return { ...state, exercises: state.exercises.filter((e) => e.id !== action.id) }
   }
 }
 
-export const EMPTY_STATE: AppState = { clients: [], groups: [], payments: [], workouts: [] }
+export const EMPTY_STATE: AppState = { clients: [], groups: [], payments: [], workouts: [], exercises: [] }
 
 interface StoreValue {
   state: AppState

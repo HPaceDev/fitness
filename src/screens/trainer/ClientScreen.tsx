@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../../data/store'
-import { clientById, clientStats, groupById, groupsOfClient, involvesClient } from '../../data/selectors'
+import { clientById, clientStats, exerciseProgress, groupById, groupsOfClient, involvesClient } from '../../data/selectors'
+import { ExerciseSheet } from '../../components/ExerciseSheet'
+import { ProgressList } from '../../components/ProgressList'
 import type { Workout } from '../../data/types'
 import { Avatar } from '../../components/Avatar'
 import { PoolCard } from '../../components/PoolCard'
@@ -21,7 +23,8 @@ export function ClientScreen() {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(false)
   const [openWorkout, setOpenWorkout] = useState<Workout | null>(null)
-  const [tab, setTab] = useState<'workouts' | 'payments'>('workouts')
+  const [tab, setTab] = useState<'workouts' | 'payments' | 'progress'>('progress')
+  const [logging, setLogging] = useState(false)
 
   const stats = useMemo(() => (client ? clientStats(state, client) : null), [state, client])
   const workouts = useMemo(
@@ -30,6 +33,7 @@ export function ClientScreen() {
   )
   const payments = useMemo(() => state.payments.filter((p) => p.clientId === id).sort((a, b) => b.date.localeCompare(a.date)), [state.payments, id])
   const groups = client ? groupsOfClient(state, client.id) : []
+  const progress = useMemo(() => (client ? exerciseProgress(state, client.id) : []), [state, client])
 
   if (!client || !stats) {
     return (
@@ -54,6 +58,7 @@ export function ClientScreen() {
           <div className="profile__name">{client.name}</div>
           <div className="profile__sub">
             {client.phone ? formatPhone(client.phone) : 'Без телефона'}
+            {client.birthday ? ` · ДР ${formatDateShort(parseLocal(client.birthday))}` : ''}
             {client.userId ? ' · в приложении' : ''}
             {client.status === 'paused' ? ' · на паузе' : ''}
           </div>
@@ -105,6 +110,9 @@ export function ClientScreen() {
 
       <section className="section">
         <div className="seg" style={{ marginBottom: 10 }}>
+          <button className={`seg__item${tab === 'progress' ? ' seg__item--active' : ''}`} onClick={() => setTab('progress')}>
+            Прогресс · {progress.length}
+          </button>
           <button className={`seg__item${tab === 'workouts' ? ' seg__item--active' : ''}`} onClick={() => setTab('workouts')}>
             Тренировки · {workouts.length}
           </button>
@@ -112,6 +120,16 @@ export function ClientScreen() {
             Оплаты · {payments.length}
           </button>
         </div>
+
+        {tab === 'progress' && (
+          <div>
+            <button className="btn" style={{ marginBottom: 10 }} onClick={() => setLogging(true)}>
+              + Записать упражнение
+            </button>
+            <ProgressList items={progress} onRemove={(id) => dispatch({ type: 'exercise/remove', id })} />
+            <p className="field__hint mt8">Напечатайте упражнение, приложение подскажет название из ваших записей и покажет прошлый вес.</p>
+          </div>
+        )}
 
         {tab === 'workouts' && (
           <div>
@@ -158,6 +176,7 @@ export function ClientScreen() {
       <AddWorkoutSheet key={`w-${adding}`} open={adding} onClose={() => setAdding(false)} clientId={client.id} />
       <ClientSheet key={`e-${editing}`} open={editing} onClose={() => setEditing(false)} clientId={client.id} onRemoved={() => navigate('/clients')} />
       <WorkoutSheet workout={openWorkout} onClose={() => setOpenWorkout(null)} />
+      <ExerciseSheet key={`ex-${logging}`} open={logging} onClose={() => setLogging(false)} clientId={client.id} />
     </div>
   )
 }

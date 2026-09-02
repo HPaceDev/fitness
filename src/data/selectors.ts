@@ -1,4 +1,4 @@
-import type { AppState, Client, Group, Workout } from './types'
+import type { AppState, Client, ExerciseEntry, Group, Workout } from './types'
 import { isSameMonth, parseLocal, startOfDay, toDateKey } from '../utils/date'
 
 /** Статусы персональной тренировки, которые списывают занятие с абонемента */
@@ -197,4 +197,96 @@ export function monthFinance(state: AppState, month: Date): MonthFinance {
     debtTotal: debtors.reduce((s, d) => s + d.debtTotal, 0),
     debtors,
   }
+}
+
+/* ---------- Прогресс по упражнениям ---------- */
+
+export interface ExerciseProgress {
+  exercise: string
+  /** Последняя запись */
+  last: ExerciseEntry
+  /** Предыдущая (для сравнения) */
+  prev?: ExerciseEntry
+  history: ExerciseEntry[] // от новых к старым
+}
+
+const byDateDesc = (a: ExerciseEntry, b: ExerciseEntry) => b.date.localeCompare(a.date)
+/** Новее — та, что позже по дате, а при равной дате — добавленная позже (стоит дальше в массиве) */
+function sortNewest(state: AppState, list: ExerciseEntry[]): ExerciseEntry[] {
+  const idx = new Map(state.exercises.map((e, i) => [e.id, i]))
+  return [...list].sort((a, b) => byDateDesc(a, b) || (idx.get(b.id) ?? 0) - (idx.get(a.id) ?? 0))
+}
+
+/** Прогресс подопечного, сгруппированный по упражнениям; недавние сверху */
+export function exerciseProgress(state: AppState, clientId: string): ExerciseProgress[] {
+  const map = new Map<string, ExerciseEntry[]>()
+  for (const e of state.exercises) {
+    if (e.clientId !== clientId) continue
+    const key = e.exercise.trim().toLowerCase()
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(e)
+  }
+  return [...map.values()]
+    .map((list) => {
+      const history = sortNewest(state, list)
+      return { exercise: history[0]!.exercise, last: history[0]!, prev: history[1], history }
+    })
+    .sort((a, b) => byDateDesc(a.last, b.last))
+}
+
+/** Названия упражнений, которые тренер уже записывал (для подсказок), частые сверху */
+export function knownExercises(state: AppState): string[] {
+  const freq = new Map<string, { name: string; n: number }>()
+  for (const e of state.exercises) {
+    const key = e.exercise.trim().toLowerCase()
+    const cur = freq.get(key)
+    if (cur) cur.n++
+    else freq.set(key, { name: e.exercise.trim(), n: 1 })
+  }
+  return [...freq.values()].sort((a, b) => b.n - a.n).map((x) => x.name)
+}
+
+/** Последняя запись подопечного по упражнению (без учёта регистра) */
+export function lastEntryFor(state: AppState, clientId: string, exercise: string): ExerciseEntry | undefined {
+  const key = exercise.trim().toLowerCase()
+  return sortNewest(
+    state,
+    state.exercises.filter((e) => e.clientId === clientId && e.exercise.trim().toLowerCase() === key),
+  )[0]
+}
+
+export function formatEntry(e: ExerciseEntry): string {
+  const parts: string[] = []
+  if (e.weightKg !== undefined && e.weightKg !== null) parts.push(`${e.weightKg} кг`)
+  if (e.reps) parts.push(`× ${e.reps}`)
+  if (e.sets) parts.push(`· ${e.sets} подх.`)
+  return parts.join(' ') || (e.note ?? '')
+}
+
+/* ---------- Дни рождения ---------- */
+
+export interface UpcomingBirthday {
+  client: Client
+  /** Через сколько дней: 0 — сегодня */
+  inDays: number
+  /** Сколько исполняется, если год известен */
+  age?: number
+}
+
+/** Дни рождения в ближайшие days дней, сегодняшние первыми */
+export function upcomingBirthdays(state: AppState, days = 7, now = new Date()): UpcomingBirthday[] {
+  const today = startOfDay(now)
+  const out: UpcomingBirthday[] = []
+  for (const c of state.clients) {
+    if (!c.birthday || c.status === 'paused') continue
+    const [y, m, d] = c.birthday.split('-').map(Number)
+    if (!m || !d) continue
+    let next = new Date(today.getFullYear(), m - 1, d)
+    if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d)
+    const inDays = Math.round((next.getTime() - today.getTime()) / 86_400_000)
+    if (inDays > days) continue
+    const age = y && y > 1900 ? next.getFullYear() - y : undefined
+    out.push({ client: c, inDays, age })
+  }
+  return out.sort((a, b) => a.inDays - b.inDays)
 }

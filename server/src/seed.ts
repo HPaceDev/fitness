@@ -11,6 +11,12 @@ const day = (offset: number) => {
   d.setDate(d.getDate() + offset)
   return d.toISOString().slice(0, 10)
 }
+/** День рождения через offset дней от сегодня, год условный */
+const bday = (offset: number) => {
+  const d = new Date()
+  d.setDate(d.getDate() + offset)
+  return `1995-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 const at = (offset: number, h: number, m = 0) => {
   const d = new Date()
   d.setDate(d.getDate() + offset)
@@ -35,9 +41,9 @@ export async function seedDemo(db: Db) {
 
   const c = { c1: newId(), c2: newId(), c3: newId(), c4: newId(), c5: newId() }
   await db.insert(schema.clients).values([
-    { id: c.c1, trainerId: tid, name: 'Анна Смирнова', phone: '79161234567', pricePerSession: 3000, userId: anna },
+    { id: c.c1, trainerId: tid, name: 'Анна Смирнова', phone: '79161234567', pricePerSession: 3000, userId: anna, birthday: bday(2) },
     { id: c.c2, trainerId: tid, name: 'Игорь Петров', phone: '79035551020', pricePerSession: 2500, userId: igor },
-    { id: c.c3, trainerId: tid, name: 'Мария Кузнецова', phone: '79261112233', pricePerSession: 3500, note: 'Колено — без прыжков' },
+    { id: c.c3, trainerId: tid, name: 'Мария Кузнецова', phone: '79261112233', pricePerSession: 3500, note: 'Колено — без прыжков', birthday: bday(0) },
     { id: c.c4, trainerId: tid, name: 'Дмитрий Волков', pricePerSession: 2500 },
     { id: c.c5, trainerId: tid, name: 'Ольга Лебедева', phone: '79157778899', pricePerSession: 3000 },
   ])
@@ -117,6 +123,28 @@ export async function seedDemo(db: Db) {
     w(null, g1, at(4, 7, 30), 60, 'planned'),
     w(c.c1, null, at(4, 9), 60, 'planned'),
     w(c.c4, null, at(5, 20), 60, 'planned'),
+  ])
+  const ex = (clientId: string, dayOffset: number, exercise: string, weightKg: number, reps: number, sets = 3) => ({
+    id: newId(),
+    trainerId: tid,
+    clientId,
+    date: day(dayOffset),
+    exercise,
+    weightKg,
+    reps,
+    sets,
+  })
+  await db.insert(schema.exerciseEntries).values([
+    ex(c.c1, -7, 'Присед со штангой', 35, 10),
+    ex(c.c1, -7, 'Тяга верхнего блока', 30, 12),
+    ex(c.c1, -5, 'Присед со штангой', 40, 8),
+    ex(c.c1, -5, 'Жим гантелей лёжа', 12, 10),
+    ex(c.c1, -2, 'Присед со штангой', 40, 10),
+    ex(c.c1, -2, 'Тяга верхнего блока', 32.5, 12),
+    ex(c.c1, 0, 'Присед со штангой', 42.5, 8),
+    ex(c.c3, -4, 'Румынская тяга', 40, 10),
+    ex(c.c3, -1, 'Румынская тяга', 45, 10),
+    ex(c.c3, -1, 'Жим ногами', 80, 12),
   ])
   return true
 }

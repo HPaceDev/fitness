@@ -8,7 +8,7 @@ const TRAINER_TABS = [
 ]
 const CLIENT_TABS = [
   { to: '/me', label: 'Расписание', icon: CalendarIcon },
-  { to: '/me/subscription', label: 'Абонемент', icon: TicketIcon },
+  { to: '/me/subscription', label: 'Мои тренировки', icon: TicketIcon },
   { to: '/me/profile', label: 'Профиль', icon: PersonIcon },
 ]
 

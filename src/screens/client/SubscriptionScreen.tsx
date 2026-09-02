@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { useStore } from '../../data/store'
-import { clientByUser, clientStats, consumesFor, groupById, involvesClient } from '../../data/selectors'
+import { clientByUser, clientStats, consumesFor, exerciseProgress, groupById, involvesClient } from '../../data/selectors'
+import { ProgressList } from '../../components/ProgressList'
 import { PoolCard } from '../../components/PoolCard'
 import { WorkoutCard } from '../../components/WorkoutCard'
 import { formatDateShort, formatDayLong, parseLocal, sessionsWord } from '../../utils/date'
@@ -29,6 +30,8 @@ export function SubscriptionScreen() {
     [state, client],
   )
 
+  const progress = useMemo(() => (client ? exerciseProgress(state, client.id) : []), [state, client])
+
   if (!client || !stats) return <NoClientCard />
 
   const usedTotal = stats.pools.reduce((s, p) => s + p.used, 0)
@@ -37,7 +40,7 @@ export function SubscriptionScreen() {
     <div className="app__content">
       <header className="header">
         <div>
-          <h1 className="header__title">Абонемент</h1>
+          <h1 className="header__title">Мои тренировки</h1>
           <p className="header__sub">
             Оплачено {formatMoney(stats.paidTotal)} · отходил {usedTotal} {sessionsWord(usedTotal)}
           </p>
@@ -80,6 +83,14 @@ export function SubscriptionScreen() {
             )
           })}
         </div>
+      </section>
+
+      <section className="section">
+        <div className="section__title">
+          <span>Мой прогресс</span>
+          <small>{progress.length ? `${progress.length} упр.` : ''}</small>
+        </div>
+        <ProgressList items={progress} />
       </section>
 
       <section className="section">

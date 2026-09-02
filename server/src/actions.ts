@@ -20,6 +20,7 @@ const clientFields = {
   pricePerSession: z.number().int().min(0).max(1_000_000),
   note: z.string().max(2000).optional(),
   status: z.enum(['active', 'paused']).optional(),
+  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
 }
 const groupFields = {
   name: z.string().trim().min(1).max(120),
@@ -68,6 +69,21 @@ export const ActionSchema = z.discriminatedUnion('type', [
     patch: z.object({ startsAt: z.string().datetime({ offset: true }), durationMin: z.number().int().min(5).max(600), note: z.string().max(2000).optional() }).partial(),
   }),
   z.object({ type: z.literal('workout/remove'), id }),
+  z.object({
+    type: z.literal('exercise/add'),
+    entry: z.object({
+      id,
+      clientId: id,
+      workoutId: id.optional(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      exercise: z.string().trim().min(1).max(120),
+      weightKg: z.number().min(0).max(1000).optional(),
+      reps: z.number().int().min(0).max(1000).optional(),
+      sets: z.number().int().min(0).max(100).optional(),
+      note: z.string().max(500).optional(),
+    }),
+  }),
+  z.object({ type: z.literal('exercise/remove'), id }),
 ])
 export type Action = z.infer<typeof ActionSchema>
 
@@ -125,6 +141,7 @@ export async function applyAction(db: Db, trainerId: string, action: Action): Pr
         pricePerSession: c.pricePerSession,
         note: c.note ?? null,
         status: c.status ?? 'active',
+        birthday: c.birthday ?? null,
         userId: await linkedUserByPhone(db, phone ?? undefined),
       })
       return
@@ -141,6 +158,7 @@ export async function applyAction(db: Db, trainerId: string, action: Action): Pr
           ...(p.pricePerSession !== undefined && { pricePerSession: p.pricePerSession }),
           ...(p.note !== undefined && { note: p.note || null }),
           ...(p.status !== undefined && { status: p.status }),
+          ...(p.birthday !== undefined && { birthday: p.birthday }),
         })
         .where(eq(schema.clients.id, action.id))
       return
@@ -252,5 +270,32 @@ export async function applyAction(db: Db, trainerId: string, action: Action): Pr
       await ownWorkout(db, trainerId, action.id)
       await db.delete(schema.workouts).where(eq(schema.workouts.id, action.id))
       return
+    case 'exercise/add': {
+      const e = action.entry
+      await ownClient(db, trainerId, e.clientId)
+      if (e.workoutId) await ownWorkout(db, trainerId, e.workoutId)
+      await db.insert(schema.exerciseEntries).values({
+        id: e.id,
+        trainerId,
+        clientId: e.clientId,
+        workoutId: e.workoutId ?? null,
+        date: e.date,
+        exercise: e.exercise,
+        weightKg: e.weightKg ?? null,
+        reps: e.reps ?? null,
+        sets: e.sets ?? null,
+        note: e.note ?? null,
+      })
+      return
+    }
+    case 'exercise/remove': {
+      const [e] = await db
+        .select()
+        .from(schema.exerciseEntries)
+        .where(and(eq(schema.exerciseEntries.id, action.id), eq(schema.exerciseEntries.trainerId, trainerId)))
+      if (!e) throw new ActionError('Запись не найдена', 404)
+      await db.delete(schema.exerciseEntries).where(eq(schema.exerciseEntries.id, action.id))
+      return
+    }
   }
 }

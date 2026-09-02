@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../../data/store'
-import { clientById, clientStats, workoutsByDay } from '../../data/selectors'
+import { clientById, clientStats, upcomingBirthdays, workoutsByDay } from '../../data/selectors'
+import { Link } from 'react-router-dom'
+import { formatPhone } from '../../utils/phone'
 import type { Workout } from '../../data/types'
 import { addDays, formatDayLong, isSameDay, plural, startOfDay, toDateKey, weekdayShort } from '../../utils/date'
 import { SessionsPill } from '../../components/StatusPill'
@@ -22,6 +24,7 @@ export function ScheduleScreen() {
   const byDay = useMemo(() => workoutsByDay(state, days[0]!, days[days.length - 1]!), [state, days])
 
   const dayWorkouts = byDay.get(toDateKey(selected)) ?? []
+  const birthdays = useMemo(() => upcomingBirthdays(state, 7), [state])
   const todayCount = (byDay.get(toDateKey(today)) ?? []).filter((w) => w.status !== 'cancelled').length
 
   const upcoming = useMemo(() => {
@@ -65,6 +68,22 @@ export function ScheduleScreen() {
           </button>
         </div>
       </header>
+
+      {birthdays.map((b) => (
+        <Link key={b.client.id} to={`/clients/${b.client.id}`} className="bday">
+          <span className="bday__icon">🎂</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="bday__title">
+              {b.client.name}: {b.inDays === 0 ? 'сегодня день рождения' : b.inDays === 1 ? 'завтра день рождения' : `день рождения через ${b.inDays} ${plural(b.inDays, 'день', 'дня', 'дней')}`}
+            </div>
+            <div className="bday__sub">
+              {b.age ? `Исполняется ${b.age}` : 'Не забудьте поздравить'}
+              {b.client.phone ? ` · ${formatPhone(b.client.phone)}` : ''}
+            </div>
+          </div>
+          <span className="row__chevron">›</span>
+        </Link>
+      ))}
 
       <div className="daystrip">
         {days.map((d) => {

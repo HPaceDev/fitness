@@ -10,8 +10,20 @@ export interface ClientDto {
   pricePerSession: number
   note?: string
   status: 'active' | 'paused'
+  birthday?: string
   createdAt: string
   userId?: string
+}
+export interface ExerciseDto {
+  id: string
+  clientId: string
+  workoutId?: string
+  date: string
+  exercise: string
+  weightKg?: number
+  reps?: number
+  sets?: number
+  note?: string
 }
 export interface GroupDto {
   id: string
@@ -45,6 +57,7 @@ export interface StateDto {
   groups: GroupDto[]
   payments: PaymentDto[]
   workouts: WorkoutDto[]
+  exercises: ExerciseDto[]
 }
 
 const und = <T>(v: T | null): T | undefined => (v === null ? undefined : v)
@@ -57,8 +70,22 @@ function toClient(c: typeof schema.clients.$inferSelect): ClientDto {
     pricePerSession: c.pricePerSession,
     note: und(c.note),
     status: c.status as 'active' | 'paused',
+    birthday: und(c.birthday),
     createdAt: c.createdAt.toISOString(),
     userId: und(c.userId),
+  }
+}
+function toExercise(e: typeof schema.exerciseEntries.$inferSelect): ExerciseDto {
+  return {
+    id: e.id,
+    clientId: e.clientId,
+    workoutId: und(e.workoutId),
+    date: e.date,
+    exercise: e.exercise,
+    weightKg: und(e.weightKg),
+    reps: und(e.reps),
+    sets: und(e.sets),
+    note: und(e.note),
   }
 }
 function toPayment(p: typeof schema.payments.$inferSelect): PaymentDto {
@@ -98,11 +125,12 @@ async function groupsWithMembers(db: Db, groupRows: (typeof schema.groups.$infer
 /** Всё состояние кабинета тренера */
 export async function trainerState(db: Db, trainerId: string): Promise<StateDto> {
   const [trainer] = await db.select().from(schema.users).where(eq(schema.users.id, trainerId))
-  const [clientRows, groupRows, paymentRows, workoutRows] = await Promise.all([
+  const [clientRows, groupRows, paymentRows, workoutRows, exerciseRows] = await Promise.all([
     db.select().from(schema.clients).where(eq(schema.clients.trainerId, trainerId)),
     db.select().from(schema.groups).where(eq(schema.groups.trainerId, trainerId)),
     db.select().from(schema.payments).where(eq(schema.payments.trainerId, trainerId)),
     db.select().from(schema.workouts).where(eq(schema.workouts.trainerId, trainerId)),
+    db.select().from(schema.exerciseEntries).where(eq(schema.exerciseEntries.trainerId, trainerId)),
   ])
   return {
     trainer: { id: trainer!.id, name: trainer!.name, phone: trainer!.phone },
@@ -110,6 +138,7 @@ export async function trainerState(db: Db, trainerId: string): Promise<StateDto>
     groups: await groupsWithMembers(db, groupRows),
     payments: paymentRows.map(toPayment),
     workouts: workoutRows.map(toWorkout),
+    exercises: exerciseRows.map(toExercise),
   }
 }
 
@@ -135,11 +164,13 @@ export async function clientState(db: Db, userId: string): Promise<StateDto | nu
         groupIds.length ? or(eq(schema.workouts.clientId, me.id), inArray(schema.workouts.groupId, groupIds)) : eq(schema.workouts.clientId, me.id),
       ),
     )
+  const exerciseRows = await db.select().from(schema.exerciseEntries).where(eq(schema.exerciseEntries.clientId, me.id))
   return {
     trainer: { id: trainer!.id, name: trainer!.name, phone: trainer!.phone },
     clients: [toClient(me)],
     groups: await groupsWithMembers(db, groupRows),
     payments: paymentRows.map(toPayment),
     workouts: workoutRows.map(toWorkout),
+    exercises: exerciseRows.map(toExercise),
   }
 }

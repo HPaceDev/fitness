@@ -18,6 +18,8 @@ export interface Client {
   note?: string
   /** paused — временно не ходит: не считается в ожидаемом доходе, история сохраняется */
   status?: 'active' | 'paused'
+  /** День рождения YYYY-MM-DD, чтобы не забыть поздравить */
+  birthday?: string | null
   createdAt: string
   /** Связь с учётной записью подопечного, если он зарегистрировался */
   userId?: ID
@@ -62,6 +64,19 @@ export interface Workout {
   note?: string
 }
 
+/** Запись прогресса: «присед 40 кг × 8, 3 подхода» */
+export interface ExerciseEntry {
+  id: ID
+  clientId: ID
+  workoutId?: ID
+  date: string // YYYY-MM-DD
+  exercise: string
+  weightKg?: number
+  reps?: number
+  sets?: number
+  note?: string
+}
+
 export interface AppState {
   /** Тренер, чей это кабинет (для подопечного — его тренер) */
   trainer?: { id: ID; name: string; phone: string }
@@ -69,4 +84,5 @@ export interface AppState {
   groups: Group[]
   payments: Payment[]
   workouts: Workout[]
+  exercises: ExerciseEntry[]
 }

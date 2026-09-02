@@ -67,6 +67,16 @@ export function FinanceScreen() {
           <div className="stat__value num" style={{ fontSize: 20 }}>{formatMoney(fin.expected)}</div>
           <div className="stat__hint">ещё в этом месяце</div>
         </div>
+        <div className="stat stat--wide">
+          <div className="stat__label">Подопечные</div>
+          <div className="stat__value num" style={{ fontSize: 20 }}>
+            {state.clients.filter((c) => c.status !== 'paused').length} активных
+            {state.clients.some((c) => c.status === 'paused') && (
+              <span className="muted" style={{ fontSize: 14, fontWeight: 500 }}> · {state.clients.filter((c) => c.status === 'paused').length} на паузе</span>
+            )}
+          </div>
+          <div className="stat__hint">на паузе не считаются в плане, история сохраняется</div>
+        </div>
         {fin.debtTotal > 0 && (
           <div className="stat stat--wide" style={{ background: 'var(--red-soft)' }}>
             <div className="stat__label" style={{ color: 'var(--red)' }}>

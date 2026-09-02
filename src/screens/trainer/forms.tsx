@@ -20,6 +20,7 @@ export function ClientSheet({ open, onClose, clientId, onRemoved }: { open: bool
   const [price, setPrice] = useState(String(existing?.pricePerSession ?? 3000))
   const [note, setNote] = useState(existing?.note ?? '')
   const [paused, setPaused] = useState(existing?.status === 'paused')
+  const [birthday, setBirthday] = useState(existing?.birthday ?? '')
 
   const valid = name.trim().length > 1 && Number(price) > 0
 
@@ -31,6 +32,7 @@ export function ClientSheet({ open, onClose, clientId, onRemoved }: { open: bool
       pricePerSession: Number(price),
       note: note.trim() || undefined,
       status: (paused ? 'paused' : 'active') as 'paused' | 'active',
+      birthday: birthday || null,
     }
     if (existing) dispatch({ type: 'client/update', id: existing.id, patch })
     else {
@@ -63,6 +65,11 @@ export function ClientSheet({ open, onClose, clientId, onRemoved }: { open: bool
         <label className="field">
           <span className="field__label">Цена персонального занятия, ₽</span>
           <input className="field__input" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" />
+        </label>
+        <label className="field">
+          <span className="field__label">День рождения</span>
+          <input className="field__input" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+          <span className="field__hint">Напомним в расписании за неделю и в день</span>
         </label>
         <label className="field">
           <span className="field__label">Заметка</span>
@@ -403,7 +410,7 @@ export function AddWorkoutSheet({
         <div className="field">
           <span className="field__label">Повторять еженедельно</span>
           <div className="seg">
-            {[0, 3, 7].map((n) => (
+            {[0, 3, 7, 11].map((n) => (
               <button key={n} className={`seg__item${repeatWeeks === n ? ' seg__item--active' : ''}`} onClick={() => setRepeatWeeks(n)}>
                 {n === 0 ? 'Нет' : `${n + 1} нед.`}
               </button>

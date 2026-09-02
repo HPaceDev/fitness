@@ -1,4 +1,4 @@
-import { boolean, date, integer, jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, date, integer, jsonb, pgTable, primaryKey, real, text, timestamp } from 'drizzle-orm/pg-core'
 
 /** Учётные записи всех ролей: тренер, подопечный, администратор сервиса */
 export const users = pgTable('users', {
@@ -32,6 +32,8 @@ export const clients = pgTable('clients', {
   pricePerSession: integer('price_per_session').notNull(),
   note: text('note'),
   status: text('status').notNull().default('active'), // 'active' | 'paused'
+  /** День рождения, чтобы тренер не забыл поздравить */
+  birthday: date('birthday'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   /** Учётная запись подопечного, если он зарегистрировался */
   userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -88,6 +90,28 @@ export const workouts = pgTable('workouts', {
   durationMin: integer('duration_min').notNull(),
   status: text('status').notNull().default('planned'),
   attendance: jsonb('attendance').$type<Record<string, 'present' | 'missed' | 'excused'>>(),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Прогресс по упражнениям: «в прошлый раз Анна делала присед 40 кг × 8».
+ * Названия упражнений — свободный текст тренера, подсказки строятся из его же записей.
+ */
+export const exerciseEntries = pgTable('exercise_entries', {
+  id: text('id').primaryKey(),
+  trainerId: text('trainer_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  clientId: text('client_id')
+    .notNull()
+    .references(() => clients.id, { onDelete: 'cascade' }),
+  workoutId: text('workout_id').references(() => workouts.id, { onDelete: 'set null' }),
+  date: date('date').notNull(),
+  exercise: text('exercise').notNull(),
+  weightKg: real('weight_kg'),
+  reps: integer('reps'),
+  sets: integer('sets'),
   note: text('note'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })
