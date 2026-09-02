@@ -17,11 +17,11 @@
 .dev-stage__aside code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; }
 
 .iphone {
-  --w: 393px; --h: 852px; --bezel: 14px; --radius: 56px;
+  --w: 393px; --h: 852px; --bezel: 14px; --frame-radius: 50px;
   position: relative;
   width: calc(var(--w) + var(--bezel) * 2);
   height: calc(var(--h) + var(--bezel) * 2);
-  border-radius: calc(var(--radius) + var(--bezel));
+  border-radius: calc(var(--frame-radius) + var(--bezel));
   background: #111114;
   box-shadow:
     0 0 0 2px #2b2b31,
@@ -39,7 +39,7 @@
 
 .iphone__screen {
   position: absolute; inset: var(--bezel);
-  border-radius: var(--radius);
+  border-radius: var(--frame-radius);
   overflow: hidden;
   background: #000;
   /* Динамический остров + хоум-индикатор живут в safe-area */

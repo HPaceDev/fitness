@@ -77,11 +77,11 @@ export function ClientsScreen() {
                     ? `След.: ${formatDayLong(parseLocal(s.nextWorkout.startsAt))}, ${formatTime(parseLocal(s.nextWorkout.startsAt))}`
                     : 'Тренировки не запланированы'}
                 </div>
-              </div>
-              <div className="row__right" style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                {s.pools.map((p) => (
-                  <SessionsPill key={p.key} remaining={p.remaining} label={p.groupId ? p.label.split(' ')[0] : 'Перс.'} />
-                ))}
+                <div className="pills">
+                  {s.pools.map((p) => (
+                    <SessionsPill key={p.key} remaining={p.remaining} label={p.groupId ? p.label : 'Персональные'} />
+                  ))}
+                </div>
               </div>
               <span className="row__chevron">›</span>
             </Link>

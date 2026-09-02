@@ -69,7 +69,7 @@ export function ClientScreen() {
       {groups.length > 0 && (
         <div className="chips" style={{ marginBottom: 12 }}>
           {groups.map((g) => (
-            <Link key={g.id} to={`/groups/${g.id}`} className="chip">
+            <Link key={g.id} to={`/groups/${g.id}`} className="chip" style={{ whiteSpace: "normal" }}>
               {g.name}
             </Link>
           ))}
@@ -81,19 +81,22 @@ export function ClientScreen() {
           <div className="section__title">Ждут подтверждения</div>
           <div className="list">
             {stats.pendingPayments.map((p) => (
-              <div key={p.id} className="row">
+              <div key={p.id} className="row" style={{ background: 'var(--yellow-soft)' }}>
                 <div className="row__body">
                   <div className="row__title">
-                    {formatMoney(p.amount)} · {p.sessions} {sessionsWord(p.sessions)}
+                    {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'}
                   </div>
                   <div className="row__sub">
-                    {groupById(state, p.groupId)?.name ?? 'персональные'} · {formatDateShort(parseLocal(p.date))}
+                    {formatDateShort(parseLocal(p.date))}
                     {p.comment ? ` · ${p.comment}` : ''}
                   </div>
                 </div>
-                <button className="btn btn--sm" onClick={() => dispatch({ type: 'payment/confirm', id: p.id })}>
-                  Подтвердить
-                </button>
+                <div className="row__right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <div className="bold num">{formatMoney(p.amount)}</div>
+                  <button className="btn btn--sm" onClick={() => dispatch({ type: 'payment/confirm', id: p.id })}>
+                    Подтвердить
+                  </button>
+                </div>
               </div>
             ))}
           </div>

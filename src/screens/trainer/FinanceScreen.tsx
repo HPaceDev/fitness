@@ -57,17 +57,20 @@ export function FinanceScreen() {
                 <div key={p.id} className="row" style={{ background: 'var(--yellow-soft)' }}>
                   {c && <Avatar name={c.name} id={c.id} />}
                   <div className="row__body">
-                    <div className="row__title">
-                      {c?.name ?? '—'} · {formatMoney(p.amount)}
-                    </div>
+                    <div className="row__title">{c?.name ?? '—'}</div>
                     <div className="row__sub">
-                      {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'} · {formatDateShort(parseLocal(p.date))}
+                      {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'}
+                      <br />
+                      {formatDateShort(parseLocal(p.date))}
                       {p.comment ? ` · ${p.comment}` : ''}
                     </div>
                   </div>
-                  <button className="btn btn--sm" onClick={() => dispatch({ type: 'payment/confirm', id: p.id })}>
-                    Подтвердить
-                  </button>
+                  <div className="row__right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                    <div className="bold num">{formatMoney(p.amount)}</div>
+                    <button className="btn btn--sm" onClick={() => dispatch({ type: 'payment/confirm', id: p.id })}>
+                      Подтвердить
+                    </button>
+                  </div>
                 </div>
               )
             })}

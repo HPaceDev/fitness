@@ -74,10 +74,8 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
               const c = clientById(state, cid)
               const cur = w.attendance?.[cid]
               return (
-                <div key={cid} className="row">
-                  <div className="row__body">
-                    <div className="row__title">{c?.name ?? '—'}</div>
-                  </div>
+                <div key={cid} className="row row--stack">
+                  <div className="row__title">{c?.name ?? '—'}</div>
                   <div className="att">
                     {ATT.map((a) => (
                       <button
