@@ -60,14 +60,20 @@ fi
 command -v git >/dev/null 2>&1 || { apt-get update -qq && apt-get install -y -qq git; }
 docker compose version >/dev/null 2>&1 || die "Нет плагина docker compose. Обновите Docker."
 
+# Репозиторий публичный: логин GitHub не нужен. Отключаем запрос пароля и
+# любые сохранённые на сервере учётные данные git, чтобы clone не спрашивал.
+export GIT_TERMINAL_PROMPT=0
+G() { git -c credential.helper= "$@"; }
+
 if [ -d "$APP_DIR/.git" ]; then
   say "Обновляю исходники в $APP_DIR"
-  git -C "$APP_DIR" fetch --quiet origin "$BRANCH"
-  git -C "$APP_DIR" checkout --quiet "$BRANCH"
-  git -C "$APP_DIR" reset --hard --quiet "origin/$BRANCH"
+  G -C "$APP_DIR" fetch --quiet origin "$BRANCH" || die "Не удалось скачать обновления с GitHub. Проверьте доступ к github.com с сервера: curl -I https://github.com"
+  G -C "$APP_DIR" checkout --quiet "$BRANCH"
+  G -C "$APP_DIR" reset --hard --quiet "origin/$BRANCH"
 else
   say "Забираю исходники в $APP_DIR"
-  git clone --quiet --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
+  rm -rf "$APP_DIR"
+  G clone --quiet --branch "$BRANCH" "$REPO_URL" "$APP_DIR" || die "Не удалось скачать код с GitHub. Проверьте доступ к github.com с сервера: curl -I https://github.com"
 fi
 cd "$APP_DIR"
 
