@@ -55,6 +55,7 @@
 .tbl .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tbl .who { display: flex; align-items: center; gap: 10px; }
 .tbl .who .avatar { width: 32px; height: 32px; font-size: 12px; }
+.tbl .who > div { white-space: nowrap; }
 .tbl .sub { font-size: 12px; color: var(--text-2); }
 .tbl .actions { display: flex; gap: 6px; justify-content: flex-end; }
 .tbl__empty { padding: 28px; text-align: center; color: var(--text-3); }
