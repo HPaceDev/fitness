@@ -1,0 +1,68 @@
+# FitTrainer на своём сервере: docker compose up -d --build
+#
+# Приложение и база. Наружу приложение не публикуется: до него доходит либо
+# Caddy соседнего проекта (портала), либо собственный Caddy из профиля tls.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: fittrainer
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?задайте POSTGRES_PASSWORD в файле .env}
+      POSTGRES_DB: fittrainer
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fittrainer -d fittrainer"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    container_name: fittrainer-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://fittrainer:${POSTGRES_PASSWORD}@db:5432/fittrainer
+      DEMO: ${DEMO:-0}
+      ADMIN_PHONE: ${ADMIN_PHONE:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    ports:
+      # Только localhost сервера. Снаружи трафик приходит через Caddy.
+      - "${APP_BIND:-127.0.0.1:3100}:3000"
+    networks:
+      - default
+      # Сеть портала: его Caddy находит наш контейнер по имени fittrainer-app.
+      # Если портала на сервере нет, установщик уберёт эту строку.
+      - portal_default
+
+  # Собственный HTTPS-прокси. Нужен только если на сервере нет другого Caddy:
+  #   docker compose --profile tls up -d
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["tls"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      DOMAIN: "${DOMAIN:?укажите DOMAIN в .env}"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+networks:
+  portal_default:
+    external: true
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

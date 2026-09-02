@@ -55,6 +55,7 @@ export function ClientScreen() {
           <div className="profile__sub">
             {client.phone ? formatPhone(client.phone) : 'Без телефона'}
             {client.userId ? ' · в приложении' : ''}
+            {client.status === 'paused' ? ' · на паузе' : ''}
           </div>
         </div>
         <button className="icon-btn icon-btn--ghost" onClick={() => setEditing(true)} aria-label="Редактировать">

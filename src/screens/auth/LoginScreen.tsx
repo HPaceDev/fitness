@@ -1,25 +1,36 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
-import { useStore } from '../../data/store'
-import { DEMO_PASSWORD } from '../../data/seed'
-import { formatPhone } from '../../utils/phone'
+import { api } from '../../api/client'
+
+interface DemoLogin {
+  label: string
+  phone: string
+  password: string
+}
 
 export function LoginScreen() {
   const { login } = useAuth()
-  const { state } = useStore()
   const navigate = useNavigate()
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [demo, setDemo] = useState<DemoLogin[]>([])
 
-  const submit = (ph = phone, pw = password) => {
-    const r = login(ph, pw)
+  useEffect(() => {
+    api<{ demo: boolean; demoLogins: DemoLogin[] }>('/api/config')
+      .then((c) => setDemo(c.demoLogins ?? []))
+      .catch(() => setDemo([]))
+  }, [])
+
+  const submit = async (ph = phone, pw = password) => {
+    setBusy(true)
+    setError(null)
+    const r = await login(ph, pw)
+    setBusy(false)
     if (!r.ok) setError(r.error)
   }
-
-  const demoTrainer = state.users.find((u) => u.role === 'trainer')
-  const demoClients = state.users.filter((u) => u.role === 'client' && u.password === DEMO_PASSWORD).slice(0, 2)
 
   return (
     <div className="app__content app__content--plain">
@@ -27,7 +38,7 @@ export function LoginScreen() {
         className="auth"
         onSubmit={(e) => {
           e.preventDefault()
-          submit()
+          void submit()
         }}
       >
         <div className="auth__logo">
@@ -45,8 +56,8 @@ export function LoginScreen() {
             <span className="field__label">Пароль</span>
             <input className="field__input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
           </label>
-          <button className="btn" type="submit" disabled={!phone || !password}>
-            Войти
+          <button className="btn" type="submit" disabled={!phone || !password || busy}>
+            {busy ? 'Входим…' : 'Войти'}
           </button>
         </div>
 
@@ -57,22 +68,18 @@ export function LoginScreen() {
           </button>
         </div>
 
-        <div className="demo">
-          <div className="demo__title">Демо-входы (пароль {DEMO_PASSWORD})</div>
-          <div className="demo__row">
-            {demoTrainer && (
-              <button type="button" className="chip chip--active" onClick={() => submit(demoTrainer.phone, DEMO_PASSWORD)}>
-                Тренер · {demoTrainer.name.split(' ')[0]}
-              </button>
-            )}
-            {demoClients.map((u) => (
-              <button key={u.id} type="button" className="chip" onClick={() => submit(u.phone, DEMO_PASSWORD)}>
-                Подопечный · {u.name.split(' ')[0]}
-              </button>
-            ))}
+        {demo.length > 0 && (
+          <div className="demo">
+            <div className="demo__title">Демо-входы (пароль {demo[0]!.password})</div>
+            <div className="demo__row">
+              {demo.map((d, i) => (
+                <button key={d.phone} type="button" className={`chip${i === 0 ? ' chip--active' : ''}`} onClick={() => submit(d.phone, d.password)} disabled={busy}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
           </div>
-          {demoTrainer && <div className="mt8">Тренер: {formatPhone(demoTrainer.phone)}</div>}
-        </div>
+        )}
       </form>
     </div>
   )

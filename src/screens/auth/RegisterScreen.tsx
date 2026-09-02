@@ -3,17 +3,22 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import type { Role } from '../../data/types'
 
+
 export function RegisterScreen() {
   const { register } = useAuth()
   const navigate = useNavigate()
-  const [role, setRole] = useState<Role>('client')
+  const [role, setRole] = useState<Exclude<Role, 'admin'>>('client')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
-  const submit = () => {
-    const r = register({ role, name, phone, password })
+  const submit = async () => {
+    setBusy(true)
+    setError(null)
+    const r = await register({ role, name, phone, password })
+    setBusy(false)
     if (!r.ok) setError(r.error)
   }
 
@@ -23,7 +28,7 @@ export function RegisterScreen() {
         className="auth"
         onSubmit={(e) => {
           e.preventDefault()
-          submit()
+          void submit()
         }}
       >
         <button type="button" className="back" onClick={() => navigate('/login')}>
@@ -61,8 +66,8 @@ export function RegisterScreen() {
             <span className="field__label">Пароль</span>
             <input className="field__input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
           </label>
-          <button className="btn" type="submit" disabled={!name || !phone || !password}>
-            Создать аккаунт
+          <button className="btn" type="submit" disabled={!name || !phone || !password || busy}>
+            {busy ? 'Создаём…' : 'Создать аккаунт'}
           </button>
         </div>
       </form>

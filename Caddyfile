@@ -1,0 +1,10 @@
+# Используется только с профилем tls (когда на сервере нет другого Caddy).
+{$DOMAIN} {
+	reverse_proxy app:3000
+	encode zstd gzip
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		-Server
+	}
+}

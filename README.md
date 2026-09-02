@@ -2,30 +2,55 @@
 
 Приложение для фитнес-тренеров и их подопечных.
 
-Сейчас это прототип веб-приложения (React + Vite + TypeScript), собранный так,
-чтобы позже без переписывания стать сайтом, PWA, webview-приложением или
-мини-приложением Telegram / Max.
+Веб-приложение (React + Vite + TypeScript) с собственным сервером
+(Node + Fastify + PostgreSQL). Один и тот же код потом становится сайтом, PWA,
+webview-приложением или мини-приложением Telegram / Max.
 
-## Запуск
+## Запуск локально
 
 ```bash
-npm install
-npm run dev
+npm install && (cd server && npm install)
+(cd server && DEMO=1 ADMIN_PHONE=79990000000 ADMIN_PASSWORD=admin npm run dev)   # API на :3000
+npm run dev                                                                       # фронтенд на :5173
 ```
 
-Открой `http://localhost:5173`. На десктопе приложение показывается внутри
-мокапа iPhone. Без рамки: `http://localhost:5173/?frame=0`. На телефоне рамка
-отключается автоматически.
+Локально сервер работает на встроенной базе PGlite (каталог `server/data`),
+PostgreSQL не нужен. Открой `http://localhost:5173`: на десктопе приложение
+показывается внутри мокапа iPhone, без рамки `?frame=0`, на телефоне рамка
+отключается сама.
+
+## Развёртывание на сервере
+
+Один скрипт, запускается от root на Ubuntu:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/HPaceDev/fitness/main/scripts/install-server.sh)
+```
+
+Скрипт ставит Docker, забирает код в `/opt/fittrainer`, генерирует пароли,
+поднимает приложение с PostgreSQL и выводит адреса. Если на сервере уже
+работает портал с Caddy (`/opt/portal`), FitTrainer добавляется к нему вторым
+сайтом на своём поддомене; иначе поднимается собственный Caddy с сертификатом
+Let's Encrypt. Без своего домена используется адрес вида
+`fit-1-2-3-4.sslip.io`.
+
+Обновление после изменений в коде:
+
+```bash
+cd /opt/fittrainer && git pull && docker compose up -d --build
+```
 
 ## Роли и вход
 
-Две роли: **тренер** и **подопечный**. Регистрация по телефону и паролю.
-Подопечный, зарегистрировавшийся с телефоном, который тренер указал в его
-карточке, автоматически привязывается к ней.
+Три роли: **тренер**, **подопечный**, **администратор сервиса**. Регистрация
+по телефону и паролю. Подопечный, зарегистрировавшийся с телефоном, который
+тренер указал в его карточке, автоматически привязывается к ней. У каждого
+тренера свой кабинет: чужих данных не видно.
 
-Сервера пока нет: пользователи и данные лежат в `localStorage`, модуль
-`src/auth/AuthContext.tsx` повторяет интерфейс будущего API (login / register /
-logout). Демо-входы показаны на экране входа, пароль `1234`.
+При `DEMO=1` сервер создаёт демо-тренера (+7 900 000-00-01, пароль 1234) и
+показывает кнопки быстрого входа. Администратор создаётся из `ADMIN_PHONE` и
+`ADMIN_PASSWORD`, админка открывается по `/#/admin`: список тренеров,
+активность, блокировка.
 
 ## Тренер
 
@@ -49,14 +74,21 @@ logout). Демо-входы показаны на экране входа, па
 ## Структура
 
 ```
-src/
+src/                    фронтенд
   dev/DeviceFrame.tsx   мокап iPhone для разработки
-  auth/                 авторизация (пока поверх localStorage)
-  data/types.ts         модель: User, Client, Group, Payment, Workout
-  data/store.tsx        состояние + localStorage
+  api/client.ts         запросы к API, токен
+  auth/                 вход, регистрация, текущий пользователь
+  data/types.ts         модель: Client, Group, Payment, Workout
+  data/store.tsx        состояние кабинета: копия серверного, действия уходят на сервер
   data/selectors.ts     расчёты: остатки по абонементам, долг, финансы за месяц
-  screens/auth/         вход и регистрация
-  screens/trainer/      экраны тренера
-  screens/client/       экраны подопечного
+  screens/              auth, trainer, client, admin
   components/           TabBar, Sheet, WorkoutCard, PoolCard, пилюли статусов
+server/                 API
+  src/db/schema.ts      таблицы (Drizzle ORM), миграции в server/drizzle
+  src/actions.ts        действия тренера с проверкой владельца
+  src/state.ts          состояние кабинета для тренера и для подопечного
+  src/routes/           auth, state, admin
+  src/seed.ts           демо-данные и администратор
+scripts/install-server.sh  установка на сервер одной командой
+Dockerfile, docker-compose.yml, Caddyfile
 ```

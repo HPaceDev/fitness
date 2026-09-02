@@ -1,15 +1,12 @@
 export type ID = string
 
-export type Role = 'trainer' | 'client'
+export type Role = 'trainer' | 'client' | 'admin'
 
-/** Учётная запись. Пароль хранится как есть только в локальном прототипе; на сервере будет хэш. */
 export interface User {
   id: ID
   role: Role
   name: string
   phone: string // нормализованный: только цифры
-  password: string
-  createdAt: string
 }
 
 export interface Client {
@@ -19,6 +16,8 @@ export interface Client {
   /** Цена персонального занятия в рублях */
   pricePerSession: number
   note?: string
+  /** paused — временно не ходит: не считается в ожидаемом доходе, история сохраняется */
+  status?: 'active' | 'paused'
   createdAt: string
   /** Связь с учётной записью подопечного, если он зарегистрировался */
   userId?: ID
@@ -64,7 +63,8 @@ export interface Workout {
 }
 
 export interface AppState {
-  users: User[]
+  /** Тренер, чей это кабинет (для подопечного — его тренер) */
+  trainer?: { id: ID; name: string; phone: string }
   clients: Client[]
   groups: Group[]
   payments: Payment[]

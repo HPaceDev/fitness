@@ -1,11 +1,14 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react'
-import type { AppState, Attendance, Client, Group, Payment, User, Workout, WorkoutStatus } from './types'
-import { createSeed } from './seed'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { AppState, Attendance, Client, Group, Payment, Workout, WorkoutStatus } from './types'
+import { api, ApiError } from '../api/client'
 
-const STORAGE_KEY = 'fittrainer.state.v3'
+/**
+ * Состояние кабинета живёт на сервере. Здесь — его копия:
+ * действие применяется локально сразу (интерфейс не ждёт сеть),
+ * параллельно уходит на сервер, а ответ сервера становится истиной.
+ */
 
 export type Action =
-  | { type: 'user/add'; user: User }
   | { type: 'client/add'; client: Client }
   | { type: 'client/update'; id: string; patch: Partial<Omit<Client, 'id'>> }
   | { type: 'client/remove'; id: string }
@@ -21,12 +24,9 @@ export type Action =
   | { type: 'workout/setAttendance'; id: string; clientId: string; value: Attendance }
   | { type: 'workout/update'; id: string; patch: Partial<Omit<Workout, 'id'>> }
   | { type: 'workout/remove'; id: string }
-  | { type: 'reset' }
 
-function reducer(state: AppState, action: Action): AppState {
+export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
-    case 'user/add':
-      return { ...state, users: [...state.users, action.user] }
     case 'client/add':
       return { ...state, clients: [...state.clients, action.client] }
     case 'client/update':
@@ -73,7 +73,6 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         workouts: state.workouts.map((w) => {
           if (w.id !== action.id) return w
-          // При отметке групповой «проведена» считаем всех участников присутствовавшими
           if (w.groupId && action.status === 'done' && !w.attendance) {
             const group = state.groups.find((g) => g.id === w.groupId)
             const attendance: Record<string, Attendance> = {}
@@ -95,43 +94,64 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, workouts: state.workouts.map((w) => (w.id === action.id ? { ...w, ...action.patch } : w)) }
     case 'workout/remove':
       return { ...state, workouts: state.workouts.filter((w) => w.id !== action.id) }
-    case 'reset':
-      return createSeed()
   }
 }
 
-function load(): AppState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as AppState
-      if (parsed && Array.isArray(parsed.clients) && Array.isArray(parsed.users) && Array.isArray(parsed.groups)) return parsed
-    }
-  } catch {
-    /* ignore */
-  }
-  return createSeed()
-}
+export const EMPTY_STATE: AppState = { clients: [], groups: [], payments: [], workouts: [] }
 
 interface StoreValue {
   state: AppState
+  /** true, пока первое состояние ещё не загружено */
+  loading: boolean
+  /** Ошибка загрузки состояния (например, подопечного ещё не добавил тренер) */
+  error: string | null
   dispatch: (a: Action) => void
+  refresh: () => Promise<void>
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, load)
+  const [state, setState] = useState<AppState>(EMPTY_STATE)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  // Очередь: действия уходят на сервер строго по порядку
+  const queue = useRef<Promise<void>>(Promise.resolve())
+
+  const refresh = useCallback(async () => {
+    try {
+      const s = await api<AppState>('/api/state')
+      setState(s)
+      setError(null)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Не удалось загрузить данные')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    } catch {
-      /* ignore */
-    }
-  }, [state])
+    void refresh()
+  }, [refresh])
 
-  const value = useMemo(() => ({ state, dispatch }), [state])
+  const dispatch = useCallback(
+    (action: Action) => {
+      setState((s) => reducer(s, action))
+      queue.current = queue.current
+        .then(async () => {
+          const s = await api<AppState>('/api/actions', { body: action })
+          setState(s)
+        })
+        .catch(async (e) => {
+          // Сервер отверг действие: откатываемся к его версии
+          console.warn('action rejected', action.type, e)
+          await refresh()
+        })
+    },
+    [refresh],
+  )
+
+  const value = useMemo(() => ({ state, loading, error, dispatch, refresh }), [state, loading, error, dispatch, refresh])
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
 

@@ -1,5 +1,5 @@
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { StoreProvider } from './data/store'
+import { StoreProvider, useStore } from './data/store'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { TabBar } from './components/TabBar'
 import { LoginScreen } from './screens/auth/LoginScreen'
@@ -12,9 +12,29 @@ import { FinanceScreen } from './screens/trainer/FinanceScreen'
 import { HomeScreen } from './screens/client/HomeScreen'
 import { SubscriptionScreen } from './screens/client/SubscriptionScreen'
 import { ProfileScreen } from './screens/client/ProfileScreen'
+import { AdminScreen } from './screens/admin/AdminScreen'
+
+function Splash({ text }: { text: string }) {
+  return (
+    <div className="app">
+      <div className="app__content app__content--plain" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="muted">{text}</div>
+      </div>
+    </div>
+  )
+}
+
+/** Ждём первое состояние с сервера, потом рисуем кабинет */
+function Loaded({ children }: { children: React.ReactNode }) {
+  const { loading } = useStore()
+  if (loading) return <Splash text="Загружаем…" />
+  return <>{children}</>
+}
 
 function Shell() {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
+
+  if (loading) return <Splash text="Входим…" />
 
   if (!user) {
     return (
@@ -28,43 +48,60 @@ function Shell() {
     )
   }
 
-  if (user.role === 'trainer') {
+  if (user.role === 'admin') {
     return (
       <div className="app">
         <Routes>
-          <Route path="/" element={<ScheduleScreen />} />
-          <Route path="/clients" element={<ClientsScreen />} />
-          <Route path="/clients/:id" element={<ClientScreen />} />
-          <Route path="/groups/:id" element={<GroupScreen />} />
-          <Route path="/finance" element={<FinanceScreen />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/admin" element={<AdminScreen />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
-        <TabBar role="trainer" />
       </div>
     )
   }
 
+  if (user.role === 'trainer') {
+    return (
+      <StoreProvider key={user.id}>
+        <Loaded>
+          <div className="app">
+            <Routes>
+              <Route path="/" element={<ScheduleScreen />} />
+              <Route path="/clients" element={<ClientsScreen />} />
+              <Route path="/clients/:id" element={<ClientScreen />} />
+              <Route path="/groups/:id" element={<GroupScreen />} />
+              <Route path="/finance" element={<FinanceScreen />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <TabBar role="trainer" />
+          </div>
+        </Loaded>
+      </StoreProvider>
+    )
+  }
+
   return (
-    <div className="app">
-      <Routes>
-        <Route path="/me" element={<HomeScreen />} />
-        <Route path="/me/subscription" element={<SubscriptionScreen />} />
-        <Route path="/me/profile" element={<ProfileScreen />} />
-        <Route path="*" element={<Navigate to="/me" replace />} />
-      </Routes>
-      <TabBar role="client" />
-    </div>
+    <StoreProvider key={user.id}>
+      <Loaded>
+        <div className="app">
+          <Routes>
+            <Route path="/me" element={<HomeScreen />} />
+            <Route path="/me/subscription" element={<SubscriptionScreen />} />
+            <Route path="/me/profile" element={<ProfileScreen />} />
+            <Route path="*" element={<Navigate to="/me" replace />} />
+          </Routes>
+          <TabBar role="client" />
+        </div>
+      </Loaded>
+    </StoreProvider>
   )
 }
 
 export function App() {
   return (
-    <StoreProvider>
-      <HashRouter>
-        <AuthProvider>
-          <Shell />
-        </AuthProvider>
-      </HashRouter>
-    </StoreProvider>
+    <HashRouter>
+      <AuthProvider>
+        <Shell />
+      </AuthProvider>
+    </HashRouter>
   )
 }

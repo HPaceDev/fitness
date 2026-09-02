@@ -13,7 +13,10 @@ export function ClientsScreen() {
   const [addingClient, setAddingClient] = useState(false)
   const [addingGroup, setAddingGroup] = useState(false)
 
-  const stats = useMemo(() => allClientStats(state), [state])
+  const stats = useMemo(() => {
+    const all = allClientStats(state)
+    return [...all.filter((s) => s.client.status !== 'paused'), ...all.filter((s) => s.client.status === 'paused')]
+  }, [state])
   const lowCount = stats.filter((s) => s.hasLow).length
 
   return (
@@ -70,6 +73,7 @@ export function ClientsScreen() {
                     : 'Тренировки не запланированы'}
                 </div>
                 <div className="pills">
+                  {s.client.status === 'paused' && <span className="pill pill--gray">На паузе</span>}
                   {s.pools.map((p) => (
                     <SessionsPill key={p.key} remaining={p.remaining} label={p.groupId ? p.label : 'Персональные'} />
                   ))}

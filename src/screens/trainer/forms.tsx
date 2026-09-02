@@ -19,15 +19,22 @@ export function ClientSheet({ open, onClose, clientId, onRemoved }: { open: bool
   const [phone, setPhone] = useState(existing?.phone ?? '')
   const [price, setPrice] = useState(String(existing?.pricePerSession ?? 3000))
   const [note, setNote] = useState(existing?.note ?? '')
+  const [paused, setPaused] = useState(existing?.status === 'paused')
 
   const valid = name.trim().length > 1 && Number(price) > 0
 
   const submit = () => {
     if (!valid) return
-    const patch = { name: name.trim(), phone: phone.trim() ? normalizePhone(phone) : undefined, pricePerSession: Number(price), note: note.trim() || undefined }
+    const patch = {
+      name: name.trim(),
+      phone: phone.trim() ? normalizePhone(phone) : undefined,
+      pricePerSession: Number(price),
+      note: note.trim() || undefined,
+      status: (paused ? 'paused' : 'active') as 'paused' | 'active',
+    }
     if (existing) dispatch({ type: 'client/update', id: existing.id, patch })
     else {
-      const client: Client = { id: uid('c'), createdAt: nowIso(), ...patch }
+      const client: Client = { id: uid(), createdAt: nowIso(), ...patch }
       dispatch({ type: 'client/add', client })
     }
     onClose()
@@ -61,6 +68,15 @@ export function ClientSheet({ open, onClose, clientId, onRemoved }: { open: bool
           <span className="field__label">Заметка</span>
           <textarea className="field__input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Травмы, цели, пожелания" />
         </label>
+        {existing && (
+          <label className="flex" style={{ gap: 10, padding: '4px 2px' }}>
+            <input type="checkbox" checked={paused} onChange={(e) => setPaused(e.target.checked)} style={{ width: 20, height: 20 }} />
+            <span>
+              <span className="bold">На паузе</span>
+              <span className="small muted" style={{ display: 'block' }}>Пока не ходит. История и оплаты сохраняются, в списке уходит вниз.</span>
+            </span>
+          </label>
+        )}
         <button className="btn" disabled={!valid} onClick={submit}>
           {existing ? 'Сохранить' : 'Добавить'}
         </button>
@@ -88,7 +104,7 @@ export function GroupSheet({ open, onClose, groupId, onRemoved }: { open: boolea
     if (!valid) return
     if (existing) dispatch({ type: 'group/update', id: existing.id, patch: { name: name.trim(), pricePerSession: Number(price) } })
     else {
-      const group: Group = { id: uid('g'), name: name.trim(), pricePerSession: Number(price), memberIds: [], createdAt: nowIso() }
+      const group: Group = { id: uid(), name: name.trim(), pricePerSession: Number(price), memberIds: [], createdAt: nowIso() }
       dispatch({ type: 'group/add', group })
     }
     onClose()
@@ -199,7 +215,7 @@ export function AddPaymentSheet({
     dispatch({
       type: 'payment/add',
       payment: {
-        id: uid('p'),
+        id: uid(),
         clientId,
         groupId: groupId || undefined,
         sessions: Number(sessions),
@@ -321,7 +337,7 @@ export function AddWorkoutSheet({
       dispatch({
         type: 'workout/add',
         workout: {
-          id: uid('w'),
+          id: uid(),
           clientId: kind === 'personal' ? client : undefined,
           groupId: kind === 'group' ? group : undefined,
           startsAt: d.toISOString(),

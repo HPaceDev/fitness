@@ -8,10 +8,10 @@ import { formatDateShort, parseLocal } from '../../utils/date'
 
 export function ProfileScreen() {
   const { user, logout } = useAuth()
-  const { state, dispatch } = useStore()
+  const { state } = useStore()
   if (!user) return null
   const client = clientByUser(state, user.id)
-  const trainer = state.users.find((u) => u.role === 'trainer')
+  const trainer = state.trainer
   const stats = client ? clientStats(state, client) : null
   const groups = client ? groupsOfClient(state, client.id) : []
 
@@ -70,24 +70,6 @@ export function ProfileScreen() {
         </button>
       </div>
 
-      <section className="section">
-        <div className="card small muted">
-          Прототип хранит данные в браузере. Сервера пока нет.
-          <div className="btn-row">
-            <button
-              className="btn btn--secondary btn--sm"
-              onClick={() => {
-                if (confirm('Сбросить все данные к демо-набору?')) {
-                  dispatch({ type: 'reset' })
-                  logout()
-                }
-              }}
-            >
-              Сбросить к демо-данным
-            </button>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }

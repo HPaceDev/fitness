@@ -8,7 +8,7 @@ import { formatDateShort, formatMonth, isSameMonth, parseLocal, plural, sessions
 import { formatMoney } from '../../utils/money'
 
 export function FinanceScreen() {
-  const { state, dispatch } = useStore()
+  const { state } = useStore()
   const { logout } = useAuth()
   const [month, setMonth] = useState(() => {
     const d = new Date()
@@ -115,21 +115,10 @@ export function FinanceScreen() {
       <section className="section">
         <div className="section__title">Аккаунт и данные</div>
         <div className="card small muted">
-          Прототип хранит данные в браузере. Сервера пока нет.
+          {state.trainer ? `${state.trainer.name} · ${state.trainer.phone}` : ''}
           <div className="btn-row">
             <button className="btn btn--secondary btn--sm" onClick={logout}>
               Выйти
-            </button>
-            <button
-              className="btn btn--secondary btn--sm"
-              onClick={() => {
-                if (confirm('Сбросить все данные к демо-набору?')) {
-                  dispatch({ type: 'reset' })
-                  logout()
-                }
-              }}
-            >
-              Сбросить к демо
             </button>
           </div>
         </div>
