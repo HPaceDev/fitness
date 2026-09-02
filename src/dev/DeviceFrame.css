@@ -1,9 +1,11 @@
 /* iPhone-мокап для разработки. Внутри рендерится приложение в масштабе экрана 393×852. */
 .dev-stage {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   background: radial-gradient(1200px 800px at 30% 0%, #26262e 0%, #0f0f13 60%, #09090c 100%);
   display: flex; align-items: center; justify-content: center;
-  padding: 32px 16px;
+  padding: 16px;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', Inter, Segoe UI, Roboto, sans-serif;
 }
 .dev-stage__aside {

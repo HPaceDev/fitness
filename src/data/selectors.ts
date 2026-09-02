@@ -1,69 +1,142 @@
-import type { AppState, Client, Workout } from './types'
+import type { AppState, Client, Group, Payment, Workout } from './types'
 import { isSameMonth, parseLocal, startOfDay, toDateKey } from '../utils/date'
 
-/** Статусы, которые списывают занятие с абонемента */
+/** Статусы персональной тренировки, которые списывают занятие с абонемента */
 export const CONSUMING_STATUSES: Workout['status'][] = ['done', 'missed']
+/** Отметки участника групповой, которые списывают занятие */
+export const CONSUMING_ATTENDANCE = ['present', 'missed'] as const
+
+export const clientById = (state: AppState, id?: string): Client | undefined => state.clients.find((c) => c.id === id)
+export const groupById = (state: AppState, id?: string): Group | undefined => state.groups.find((g) => g.id === id)
+export const clientByUser = (state: AppState, userId: string): Client | undefined => state.clients.find((c) => c.userId === userId)
+
+export const groupsOfClient = (state: AppState, clientId: string): Group[] => state.groups.filter((g) => g.memberIds.includes(clientId))
+
+/** Списывает ли эта тренировка занятие у данного подопечного */
+export function consumesFor(w: Workout, clientId: string): boolean {
+  if (w.clientId === clientId) return CONSUMING_STATUSES.includes(w.status)
+  if (w.groupId && w.status === 'done') {
+    const a = w.attendance?.[clientId]
+    return !!a && (CONSUMING_ATTENDANCE as readonly string[]).includes(a)
+  }
+  return false
+}
+
+/** Касается ли тренировка подопечного (персональная его или групповая его группы) */
+export function involvesClient(state: AppState, w: Workout, clientId: string): boolean {
+  if (w.clientId === clientId) return true
+  if (w.groupId) {
+    if (w.attendance && clientId in w.attendance) return true
+    return groupById(state, w.groupId)?.memberIds.includes(clientId) ?? false
+  }
+  return false
+}
+
+/** Абонемент-«кошелёк»: персональные занятия или конкретная группа */
+export interface PoolStats {
+  key: string
+  label: string
+  groupId?: string
+  price: number
+  purchased: number
+  used: number
+  remaining: number
+  debt: number
+  planned: number
+  pendingSessions: number
+  lastPaymentDate?: string
+}
+
+function poolStats(state: AppState, client: Client, group: Group | undefined, now: Date): PoolStats {
+  const gid = group?.id
+  const payments = state.payments.filter((p) => p.clientId === client.id && (p.groupId ?? undefined) === gid)
+  const confirmed = payments.filter((p) => p.status === 'confirmed')
+  const purchased = confirmed.reduce((s, p) => s + p.sessions, 0)
+  const pendingSessions = payments.filter((p) => p.status === 'pending').reduce((s, p) => s + p.sessions, 0)
+
+  const workouts = state.workouts.filter((w) => (gid ? w.groupId === gid : w.clientId === client.id))
+  const used = workouts.filter((w) => consumesFor(w, client.id)).length
+  const planned = workouts.filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= startOfDay(now)).length
+
+  const price = group ? group.pricePerSession : client.pricePerSession
+  const remaining = purchased - used
+  const sortedDates = confirmed.map((p) => p.date).sort()
+
+  return {
+    key: gid ?? 'personal',
+    label: group ? group.name : 'Персональные',
+    groupId: gid,
+    price,
+    purchased,
+    used,
+    remaining,
+    debt: remaining < 0 ? -remaining * price : 0,
+    planned,
+    pendingSessions,
+    lastPaymentDate: sortedDates[sortedDates.length - 1],
+  }
+}
 
 export interface ClientStats {
   client: Client
-  purchasedSessions: number
-  usedSessions: number
-  /** Может быть отрицательным — значит клиент занимается в долг */
-  remainingSessions: number
+  personal: PoolStats
+  groups: PoolStats[]
+  /** Все кошельки: персональный + группы */
+  pools: PoolStats[]
+  remainingTotal: number
+  debtTotal: number
   paidTotal: number
-  /** Сумма долга за занятия сверх оплаченных, по цене клиента */
-  debt: number
-  plannedSessions: number
   lastPaymentDate?: string
   nextWorkout?: Workout
+  pendingPayments: Payment[]
+  /** Есть ли кошелёк, где занятия кончились или ушли в минус */
+  hasLow: boolean
 }
 
 export function clientStats(state: AppState, client: Client, now = new Date()): ClientStats {
-  const payments = state.payments.filter((p) => p.clientId === client.id)
-  const workouts = state.workouts.filter((w) => w.clientId === client.id)
+  const personal = poolStats(state, client, undefined, now)
+  // Группы, где подопечный состоит, плюс те, за которые платил (на случай исключения из группы)
+  const groupIds = new Set<string>(groupsOfClient(state, client.id).map((g) => g.id))
+  for (const p of state.payments) if (p.clientId === client.id && p.groupId) groupIds.add(p.groupId)
+  const groups = [...groupIds]
+    .map((id) => groupById(state, id))
+    .filter((g): g is Group => !!g)
+    .map((g) => poolStats(state, client, g, now))
 
-  const purchasedSessions = payments.reduce((s, p) => s + p.sessions, 0)
-  const usedSessions = workouts.filter((w) => CONSUMING_STATUSES.includes(w.status)).length
-  const remainingSessions = purchasedSessions - usedSessions
-  const paidTotal = payments.reduce((s, p) => s + p.amount, 0)
-  const debt = remainingSessions < 0 ? -remainingSessions * client.pricePerSession : 0
-  const plannedSessions = workouts.filter((w) => w.status === 'planned').length
+  const pools = [personal, ...groups].filter((p) => p.purchased > 0 || p.used > 0 || p.planned > 0 || p.pendingSessions > 0 || p.key === 'personal')
+  const confirmed = state.payments.filter((p) => p.clientId === client.id && p.status === 'confirmed')
+  const paidTotal = confirmed.reduce((s, p) => s + p.amount, 0)
+  const sortedDates = confirmed.map((p) => p.date).sort()
 
-  const sortedDates = payments.map((p) => p.date).sort()
-  const lastPaymentDate = sortedDates[sortedDates.length - 1]
-  const nextWorkout = workouts
-    .filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= now)
+  const nextWorkout = state.workouts
+    .filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= now && involvesClient(state, w, client.id))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0]
 
   return {
     client,
-    purchasedSessions,
-    usedSessions,
-    remainingSessions,
+    personal,
+    groups,
+    pools,
+    remainingTotal: pools.reduce((s, p) => s + p.remaining, 0),
+    debtTotal: pools.reduce((s, p) => s + p.debt, 0),
     paidTotal,
-    debt,
-    plannedSessions,
-    lastPaymentDate,
+    lastPaymentDate: sortedDates[sortedDates.length - 1],
     nextWorkout,
+    pendingPayments: state.payments.filter((p) => p.clientId === client.id && p.status === 'pending'),
+    hasLow: pools.some((p) => p.remaining <= 0 && (p.planned > 0 || p.purchased > 0)),
   }
 }
 
 export function allClientStats(state: AppState, now = new Date()): ClientStats[] {
-  return state.clients
-    .map((c) => clientStats(state, c, now))
-    .sort((a, b) => a.client.name.localeCompare(b.client.name, 'ru'))
-}
-
-export function clientById(state: AppState, id: string): Client | undefined {
-  return state.clients.find((c) => c.id === id)
+  return state.clients.map((c) => clientStats(state, c, now)).sort((a, b) => a.client.name.localeCompare(b.client.name, 'ru'))
 }
 
 /** Тренировки, сгруппированные по дням (ключ YYYY-MM-DD), отсортированы по времени */
-export function workoutsByDay(state: AppState, from: Date, to: Date): Map<string, Workout[]> {
+export function workoutsByDay(state: AppState, from: Date, to: Date, filter?: (w: Workout) => boolean): Map<string, Workout[]> {
   const map = new Map<string, Workout[]>()
   const fromT = startOfDay(from).getTime()
   const toT = startOfDay(to).getTime()
-  const sorted = [...state.workouts].sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+  const sorted = [...state.workouts].filter((w) => !filter || filter(w)).sort((a, b) => a.startsAt.localeCompare(b.startsAt))
   for (const w of sorted) {
     const d = parseLocal(w.startsAt)
     const dayT = startOfDay(d).getTime()
@@ -75,34 +148,52 @@ export function workoutsByDay(state: AppState, from: Date, to: Date): Map<string
   return map
 }
 
+/** Сколько заработано на тренировке (по факту) */
+export function workoutEarned(state: AppState, w: Workout): number {
+  if (w.clientId) return CONSUMING_STATUSES.includes(w.status) ? (clientById(state, w.clientId)?.pricePerSession ?? 0) : 0
+  if (w.groupId && w.status === 'done') {
+    const g = groupById(state, w.groupId)
+    const n = Object.values(w.attendance ?? {}).filter((a) => (CONSUMING_ATTENDANCE as readonly string[]).includes(a)).length
+    return n * (g?.pricePerSession ?? 0)
+  }
+  return 0
+}
+
+/** Сколько ожидается с запланированной тренировки */
+export function workoutExpected(state: AppState, w: Workout): number {
+  if (w.status !== 'planned') return 0
+  if (w.clientId) return clientById(state, w.clientId)?.pricePerSession ?? 0
+  if (w.groupId) {
+    const g = groupById(state, w.groupId)
+    return (g?.memberIds.length ?? 0) * (g?.pricePerSession ?? 0)
+  }
+  return 0
+}
+
 export interface MonthFinance {
   received: number
   paymentsCount: number
   doneSessions: number
-  /** Стоимость проведённых занятий по цене клиента — сколько заработано */
   earned: number
-  /** Стоимость запланированных занятий в этом месяце */
   expected: number
   debtTotal: number
   debtors: ClientStats[]
+  pending: Payment[]
 }
 
 export function monthFinance(state: AppState, month: Date): MonthFinance {
   const inMonth = (iso: string) => isSameMonth(parseLocal(iso), month)
-  const priceOf = (clientId: string) => clientById(state, clientId)?.pricePerSession ?? 0
 
-  const payments = state.payments.filter((p) => inMonth(p.date))
+  const payments = state.payments.filter((p) => p.status === 'confirmed' && inMonth(p.date))
   const received = payments.reduce((s, p) => s + p.amount, 0)
 
-  const done = state.workouts.filter((w) => inMonth(w.startsAt) && CONSUMING_STATUSES.includes(w.status))
-  const earned = done.reduce((s, w) => s + priceOf(w.clientId), 0)
-
-  const planned = state.workouts.filter((w) => inMonth(w.startsAt) && w.status === 'planned')
-  const expected = planned.reduce((s, w) => s + priceOf(w.clientId), 0)
+  const monthWorkouts = state.workouts.filter((w) => inMonth(w.startsAt))
+  const done = monthWorkouts.filter((w) => (w.clientId ? CONSUMING_STATUSES.includes(w.status) : w.status === 'done'))
+  const earned = monthWorkouts.reduce((s, w) => s + workoutEarned(state, w), 0)
+  const expected = monthWorkouts.reduce((s, w) => s + workoutExpected(state, w), 0)
 
   const stats = allClientStats(state)
-  const debtors = stats.filter((s) => s.debt > 0)
-  const debtTotal = debtors.reduce((s, d) => s + d.debt, 0)
+  const debtors = stats.filter((s) => s.debtTotal > 0)
 
   return {
     received,
@@ -110,7 +201,8 @@ export function monthFinance(state: AppState, month: Date): MonthFinance {
     doneSessions: done.length,
     earned,
     expected,
-    debtTotal,
+    debtTotal: debtors.reduce((s, d) => s + d.debtTotal, 0),
     debtors,
+    pending: state.payments.filter((p) => p.status === 'pending').sort((a, b) => b.date.localeCompare(a.date)),
   }
 }

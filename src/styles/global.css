@@ -52,7 +52,10 @@ h1, h2, h3, p { margin: 0; }
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: calc(var(--safe-top) + 8px) 16px calc(var(--tabbar-h) + var(--safe-bottom) + 24px);
+  scrollbar-width: none;
 }
+.app__content::-webkit-scrollbar { display: none; }
+.app__content--plain { padding-bottom: calc(var(--safe-bottom) + 24px); }
 
 /* ---------- Header ---------- */
 .header {
@@ -280,3 +283,61 @@ textarea.field__input { min-height: 72px; resize: vertical; }
 .flex { display: flex; align-items: center; gap: 8px; }
 .between { justify-content: space-between; }
 .num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Auth ---------- */
+.auth {
+  min-height: 100%;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: calc(var(--safe-top) + 24px) 24px calc(var(--safe-bottom) + 24px);
+}
+.auth__logo { font-size: 34px; font-weight: 900; letter-spacing: -0.03em; }
+.auth__logo em { color: var(--accent); font-style: normal; }
+.auth__sub { color: var(--text-2); margin: 6px 0 28px; font-size: 15px; }
+.auth__error { background: var(--red-soft); color: #c62a20; padding: 10px 14px; border-radius: 12px; font-size: 14px; }
+.auth__switch { text-align: center; color: var(--text-2); font-size: 14px; margin-top: 20px; }
+.auth__switch button { color: var(--accent); font-weight: 600; }
+.demo { margin-top: 28px; padding: 14px; background: var(--surface); border-radius: var(--radius); font-size: 13px; color: var(--text-2); }
+.demo__title { font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.demo__row { display: flex; gap: 8px; flex-wrap: wrap; }
+.role-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.role-pick__item {
+  padding: 14px 12px; border-radius: 14px; border: 2px solid transparent;
+  background: var(--surface); text-align: left;
+}
+.role-pick__item--active { border-color: var(--accent); }
+.role-pick__title { font-weight: 700; font-size: 15px; }
+.role-pick__sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+
+/* ---------- Groups ---------- */
+.group-mark { width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; background: var(--text); color: #fff; font-weight: 800; font-size: 14px; }
+.workout--group .workout__bar { background: var(--blue); }
+.workout--group.workout--done .workout__bar { background: var(--green); }
+.att { display: flex; gap: 4px; }
+.att__btn { padding: 5px 9px; border-radius: 8px; font-size: 12px; font-weight: 600; background: var(--surface-2); color: var(--text-2); }
+.att__btn--present { background: var(--green-soft); color: #1e8f3d; }
+.att__btn--missed { background: var(--red-soft); color: #c62a20; }
+.att__btn--excused { background: rgba(60,60,67,0.12); color: var(--text); }
+
+/* ---------- Pools (абонементы) ---------- */
+.pool { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+.pool + .pool { margin-top: 10px; }
+.pool__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pool__label { font-weight: 700; font-size: 15px; }
+.pool__price { font-size: 13px; color: var(--text-2); }
+.pool__big { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
+.pool__num { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+.pool__of { font-size: 14px; color: var(--text-2); }
+.pool--low .pool__num { color: var(--red); }
+.hero {
+  background: var(--accent); color: #fff; border-radius: 20px; padding: 18px;
+  box-shadow: 0 6px 20px rgba(255,90,31,0.25);
+}
+.hero__label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.85; }
+.hero__value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; }
+.hero__sub { font-size: 14px; opacity: 0.9; margin-top: 2px; }
+.hero--dark { background: var(--text); box-shadow: none; }
+.hero__rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.hero__row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.hero__row-label { font-size: 15px; font-weight: 600; opacity: 0.9; }
+.hero__row-value { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; }
+.hero__row-of { font-size: 14px; font-weight: 600; opacity: 0.7; }

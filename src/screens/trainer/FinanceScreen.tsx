@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useStore } from '../data/store'
-import { clientById, monthFinance } from '../data/selectors'
-import { Avatar } from '../components/Avatar'
-import { formatDateShort, formatMonth, isSameMonth, parseLocal, plural, sessionsWord } from '../utils/date'
-import { formatMoney } from '../utils/money'
+import { useAuth } from '../../auth/AuthContext'
+import { useStore } from '../../data/store'
+import { clientById, groupById, monthFinance } from '../../data/selectors'
+import { Avatar } from '../../components/Avatar'
+import { formatDateShort, formatMonth, isSameMonth, parseLocal, plural, sessionsWord } from '../../utils/date'
+import { formatMoney } from '../../utils/money'
 
 export function FinanceScreen() {
   const { state, dispatch } = useStore()
+  const { logout } = useAuth()
   const [month, setMonth] = useState(() => {
     const d = new Date()
     d.setDate(1)
@@ -17,10 +19,7 @@ export function FinanceScreen() {
 
   const fin = useMemo(() => monthFinance(state, month), [state, month])
   const payments = useMemo(
-    () =>
-      state.payments
-        .filter((p) => isSameMonth(parseLocal(p.date), month))
-        .sort((a, b) => b.date.localeCompare(a.date)),
+    () => state.payments.filter((p) => p.status === 'confirmed' && isSameMonth(parseLocal(p.date), month)).sort((a, b) => b.date.localeCompare(a.date)),
     [state.payments, month],
   )
 
@@ -48,16 +47,48 @@ export function FinanceScreen() {
         </div>
       </header>
 
+      {fin.pending.length > 0 && (
+        <section className="section" style={{ marginTop: 0 }}>
+          <div className="section__title">Ждут подтверждения</div>
+          <div className="list">
+            {fin.pending.map((p) => {
+              const c = clientById(state, p.clientId)
+              return (
+                <div key={p.id} className="row" style={{ background: 'var(--yellow-soft)' }}>
+                  {c && <Avatar name={c.name} id={c.id} />}
+                  <div className="row__body">
+                    <div className="row__title">
+                      {c?.name ?? '—'} · {formatMoney(p.amount)}
+                    </div>
+                    <div className="row__sub">
+                      {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'} · {formatDateShort(parseLocal(p.date))}
+                      {p.comment ? ` · ${p.comment}` : ''}
+                    </div>
+                  </div>
+                  <button className="btn btn--sm" onClick={() => dispatch({ type: 'payment/confirm', id: p.id })}>
+                    Подтвердить
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
       <div className="stats">
         <div className="stat stat--accent stat--wide">
           <div className="stat__label">Получено оплат</div>
           <div className="stat__value num" style={{ fontSize: 32 }}>{formatMoney(fin.received)}</div>
-          <div className="stat__hint">{fin.paymentsCount} {plural(fin.paymentsCount, 'оплата', 'оплаты', 'оплат')} за месяц</div>
+          <div className="stat__hint">
+            {fin.paymentsCount} {plural(fin.paymentsCount, 'оплата', 'оплаты', 'оплат')} за месяц
+          </div>
         </div>
         <div className="stat">
           <div className="stat__label">Отработано</div>
           <div className="stat__value num" style={{ fontSize: 20 }}>{formatMoney(fin.earned)}</div>
-          <div className="stat__hint">{fin.doneSessions} {sessionsWord(fin.doneSessions)}</div>
+          <div className="stat__hint">
+            {fin.doneSessions} {plural(fin.doneSessions, 'тренировка', 'тренировки', 'тренировок')}
+          </div>
         </div>
         <div className="stat">
           <div className="stat__label">Запланировано</div>
@@ -66,11 +97,11 @@ export function FinanceScreen() {
         </div>
         {fin.debtTotal > 0 && (
           <div className="stat stat--wide" style={{ background: 'var(--red-soft)' }}>
-            <div className="stat__label" style={{ color: 'var(--red)' }}>Занимаются в долг</div>
-            <div className="stat__value num" style={{ fontSize: 20, color: 'var(--red)' }}>{formatMoney(fin.debtTotal)}</div>
-            <div className="stat__hint">
-              {fin.debtors.map((d) => d.client.name.split(' ')[0]).join(', ')}
+            <div className="stat__label" style={{ color: 'var(--red)' }}>
+              Занимаются в долг
             </div>
+            <div className="stat__value num" style={{ fontSize: 20, color: 'var(--red)' }}>{formatMoney(fin.debtTotal)}</div>
+            <div className="stat__hint">{fin.debtors.map((d) => d.client.name.split(' ')[0]).join(', ')}</div>
           </div>
         )}
       </div>
@@ -91,12 +122,14 @@ export function FinanceScreen() {
                     <Avatar name={c.name} id={c.id} />
                   </Link>
                 ) : (
-                  <span className="avatar" style={{ background: 'var(--text-3)' }}>?</span>
+                  <span className="avatar" style={{ background: 'var(--text-3)' }}>
+                    ?
+                  </span>
                 )}
                 <div className="row__body">
-                  <div className="row__title">{c?.name ?? 'Удалённый клиент'}</div>
+                  <div className="row__title">{c?.name ?? 'Удалённый подопечный'}</div>
                   <div className="row__sub">
-                    {formatDateShort(parseLocal(p.date))} · {p.sessions} {sessionsWord(p.sessions)}
+                    {formatDateShort(parseLocal(p.date))} · {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'}
                     {p.comment ? ` · ${p.comment}` : ''}
                   </div>
                 </div>
@@ -108,17 +141,23 @@ export function FinanceScreen() {
       </section>
 
       <section className="section">
-        <div className="section__title">Данные</div>
+        <div className="section__title">Аккаунт и данные</div>
         <div className="card small muted">
-          Прототип хранит данные в браузере (localStorage). Сервера пока нет.
+          Прототип хранит данные в браузере. Сервера пока нет.
           <div className="btn-row">
+            <button className="btn btn--secondary btn--sm" onClick={logout}>
+              Выйти
+            </button>
             <button
               className="btn btn--secondary btn--sm"
               onClick={() => {
-                if (confirm('Сбросить все данные к демо-набору?')) dispatch({ type: 'reset' })
+                if (confirm('Сбросить все данные к демо-набору?')) {
+                  dispatch({ type: 'reset' })
+                  logout()
+                }
               }}
             >
-              Сбросить к демо-данным
+              Сбросить к демо
             </button>
           </div>
         </div>
