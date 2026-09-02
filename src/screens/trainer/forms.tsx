@@ -206,7 +206,6 @@ export function AddPaymentSheet({
         amount: Number(amount),
         date,
         comment: comment.trim() || undefined,
-        status: 'confirmed',
       },
     })
     onClose()

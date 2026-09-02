@@ -15,7 +15,6 @@ export function ClientsScreen() {
 
   const stats = useMemo(() => allClientStats(state), [state])
   const lowCount = stats.filter((s) => s.hasLow).length
-  const pendingCount = state.payments.filter((p) => p.status === 'pending').length
 
   return (
     <div className="app__content">
@@ -31,13 +30,6 @@ export function ClientsScreen() {
           +
         </button>
       </header>
-
-      {pendingCount > 0 && (
-        <Link to="/finance" className="card flex between" style={{ background: 'var(--yellow-soft)', boxShadow: 'none', marginBottom: 14 }}>
-          <span className="small bold">Ожидают подтверждения: {pendingCount} {pendingCount === 1 ? 'оплата' : 'оплаты'}</span>
-          <span className="row__chevron">›</span>
-        </Link>
-      )}
 
       <section className="section" style={{ marginTop: 0 }}>
         <div className="section__title">

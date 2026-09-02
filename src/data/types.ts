@@ -33,8 +33,6 @@ export interface Group {
   createdAt: string
 }
 
-export type PaymentStatus = 'pending' | 'confirmed'
-
 export interface Payment {
   id: ID
   clientId: ID
@@ -44,8 +42,6 @@ export interface Payment {
   sessions: number
   date: string // YYYY-MM-DD
   comment?: string
-  /** pending — подопечный сообщил об оплате, тренер ещё не подтвердил */
-  status: PaymentStatus
 }
 
 export type WorkoutStatus = 'planned' | 'done' | 'cancelled' | 'missed'

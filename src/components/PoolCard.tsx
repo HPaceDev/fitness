@@ -29,8 +29,7 @@ export function PoolCard({ pool, onPay, payLabel = '+ Оплата' }: { pool: P
         <div className="progress__fill" style={{ width: `${progress}%` }} />
       </div>
       <div className="small muted mt8">
-        {pool.pendingSessions > 0 && <span>Ожидает подтверждения: +{pool.pendingSessions} · </span>}
-        {pool.planned > 0 ? `Запланировано ${pool.planned}` : 'Ничего не запланировано'}
+        Отходил {pool.used} · {pool.planned > 0 ? `запланировано ${pool.planned}` : 'ничего не запланировано'}
         {pool.planned > pool.remaining && pool.remaining >= 0 && <span style={{ color: 'var(--red)' }}> · хватит на {pool.remaining}</span>}
       </div>
     </div>

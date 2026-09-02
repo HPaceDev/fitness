@@ -76,33 +76,6 @@ export function ClientScreen() {
         </div>
       )}
 
-      {stats.pendingPayments.length > 0 && (
-        <section className="section" style={{ marginTop: 0 }}>
-          <div className="section__title">Ждут подтверждения</div>
-          <div className="list">
-            {stats.pendingPayments.map((p) => (
-              <div key={p.id} className="row" style={{ background: 'var(--yellow-soft)' }}>
-                <div className="row__body">
-                  <div className="row__title">
-                    {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'}
-                  </div>
-                  <div className="row__sub">
-                    {formatDateShort(parseLocal(p.date))}
-                    {p.comment ? ` · ${p.comment}` : ''}
-                  </div>
-                </div>
-                <div className="row__right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                  <div className="bold num">{formatMoney(p.amount)}</div>
-                  <button className="btn btn--sm" onClick={() => dispatch({ type: 'payment/confirm', id: p.id })}>
-                    Подтвердить
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {stats.pools.map((p) => (
         <PoolCard key={p.key} pool={p} onPay={() => setPaying(p.groupId ?? '')} />
       ))}
@@ -165,7 +138,6 @@ export function ClientScreen() {
                   <div className="row__sub">
                     {formatDateShort(parseLocal(p.date))}
                     {p.comment ? ` · ${p.comment}` : ''}
-                    {p.status === 'pending' ? ' · не подтверждена' : ''}
                   </div>
                 </div>
                 <div className="row__right">

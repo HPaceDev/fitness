@@ -31,18 +31,16 @@ export function createSeed(): AppState {
     ],
     payments: [
       // персональные
-      { id: 'p1', clientId: 'c1', amount: 24000, sessions: 8, date: day(-35), status: 'confirmed' },
-      { id: 'p2', clientId: 'c1', amount: 24000, sessions: 8, date: day(-8), status: 'confirmed' },
-      { id: 'p3', clientId: 'c2', amount: 10000, sessions: 4, date: day(-28), status: 'confirmed' },
-      { id: 'p4', clientId: 'c3', amount: 35000, sessions: 10, date: day(-18), status: 'confirmed' },
-      { id: 'p5', clientId: 'c4', amount: 2500, sessions: 1, date: day(-1), comment: 'Наличными', status: 'confirmed' },
+      { id: 'p1', clientId: 'c1', amount: 24000, sessions: 8, date: day(-35) },
+      { id: 'p2', clientId: 'c1', amount: 24000, sessions: 8, date: day(-8) },
+      { id: 'p3', clientId: 'c2', amount: 10000, sessions: 4, date: day(-28) },
+      { id: 'p4', clientId: 'c3', amount: 35000, sessions: 10, date: day(-18) },
+      { id: 'p5', clientId: 'c4', amount: 2500, sessions: 1, date: day(-1), comment: 'Наличными' },
       // групповые
-      { id: 'p6', clientId: 'c1', groupId: 'g1', amount: 12000, sessions: 8, date: day(-22), status: 'confirmed' },
-      { id: 'p7', clientId: 'c3', groupId: 'g1', amount: 12000, sessions: 8, date: day(-22), status: 'confirmed' },
-      { id: 'p8', clientId: 'c5', groupId: 'g1', amount: 6000, sessions: 4, date: day(-14), status: 'confirmed' },
-      { id: 'p9', clientId: 'c2', groupId: 'g2', amount: 9600, sessions: 8, date: day(-10), status: 'confirmed' },
-      // ожидает подтверждения тренером
-      { id: 'p10', clientId: 'c2', amount: 10000, sessions: 4, date: day(0), comment: 'Перевёл на карту', status: 'pending' },
+      { id: 'p6', clientId: 'c1', groupId: 'g1', amount: 12000, sessions: 8, date: day(-22) },
+      { id: 'p7', clientId: 'c3', groupId: 'g1', amount: 12000, sessions: 8, date: day(-22) },
+      { id: 'p8', clientId: 'c5', groupId: 'g1', amount: 6000, sessions: 4, date: day(-14) },
+      { id: 'p9', clientId: 'c2', groupId: 'g2', amount: 9600, sessions: 8, date: day(-10) },
     ],
     workouts: [
       // персональные, прошлые

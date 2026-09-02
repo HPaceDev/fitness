@@ -1,4 +1,4 @@
-import type { AppState, Client, Group, Payment, Workout } from './types'
+import type { AppState, Client, Group, Workout } from './types'
 import { isSameMonth, parseLocal, startOfDay, toDateKey } from '../utils/date'
 
 /** Статусы персональной тренировки, которые списывают занятие с абонемента */
@@ -43,16 +43,13 @@ export interface PoolStats {
   remaining: number
   debt: number
   planned: number
-  pendingSessions: number
   lastPaymentDate?: string
 }
 
 function poolStats(state: AppState, client: Client, group: Group | undefined, now: Date): PoolStats {
   const gid = group?.id
   const payments = state.payments.filter((p) => p.clientId === client.id && (p.groupId ?? undefined) === gid)
-  const confirmed = payments.filter((p) => p.status === 'confirmed')
-  const purchased = confirmed.reduce((s, p) => s + p.sessions, 0)
-  const pendingSessions = payments.filter((p) => p.status === 'pending').reduce((s, p) => s + p.sessions, 0)
+  const purchased = payments.reduce((s, p) => s + p.sessions, 0)
 
   const workouts = state.workouts.filter((w) => (gid ? w.groupId === gid : w.clientId === client.id))
   const used = workouts.filter((w) => consumesFor(w, client.id)).length
@@ -60,7 +57,7 @@ function poolStats(state: AppState, client: Client, group: Group | undefined, no
 
   const price = group ? group.pricePerSession : client.pricePerSession
   const remaining = purchased - used
-  const sortedDates = confirmed.map((p) => p.date).sort()
+  const sortedDates = payments.map((p) => p.date).sort()
 
   return {
     key: gid ?? 'personal',
@@ -72,7 +69,6 @@ function poolStats(state: AppState, client: Client, group: Group | undefined, no
     remaining,
     debt: remaining < 0 ? -remaining * price : 0,
     planned,
-    pendingSessions,
     lastPaymentDate: sortedDates[sortedDates.length - 1],
   }
 }
@@ -88,7 +84,6 @@ export interface ClientStats {
   paidTotal: number
   lastPaymentDate?: string
   nextWorkout?: Workout
-  pendingPayments: Payment[]
   /** Есть ли кошелёк, где занятия кончились или ушли в минус */
   hasLow: boolean
 }
@@ -103,10 +98,10 @@ export function clientStats(state: AppState, client: Client, now = new Date()): 
     .filter((g): g is Group => !!g)
     .map((g) => poolStats(state, client, g, now))
 
-  const pools = [personal, ...groups].filter((p) => p.purchased > 0 || p.used > 0 || p.planned > 0 || p.pendingSessions > 0 || p.key === 'personal')
-  const confirmed = state.payments.filter((p) => p.clientId === client.id && p.status === 'confirmed')
-  const paidTotal = confirmed.reduce((s, p) => s + p.amount, 0)
-  const sortedDates = confirmed.map((p) => p.date).sort()
+  const pools = [personal, ...groups].filter((p) => p.purchased > 0 || p.used > 0 || p.planned > 0 || p.key === 'personal')
+  const clientPayments = state.payments.filter((p) => p.clientId === client.id)
+  const paidTotal = clientPayments.reduce((s, p) => s + p.amount, 0)
+  const sortedDates = clientPayments.map((p) => p.date).sort()
 
   const nextWorkout = state.workouts
     .filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= now && involvesClient(state, w, client.id))
@@ -122,7 +117,6 @@ export function clientStats(state: AppState, client: Client, now = new Date()): 
     paidTotal,
     lastPaymentDate: sortedDates[sortedDates.length - 1],
     nextWorkout,
-    pendingPayments: state.payments.filter((p) => p.clientId === client.id && p.status === 'pending'),
     hasLow: pools.some((p) => p.remaining <= 0 && (p.planned > 0 || p.purchased > 0)),
   }
 }
@@ -178,13 +172,12 @@ export interface MonthFinance {
   expected: number
   debtTotal: number
   debtors: ClientStats[]
-  pending: Payment[]
 }
 
 export function monthFinance(state: AppState, month: Date): MonthFinance {
   const inMonth = (iso: string) => isSameMonth(parseLocal(iso), month)
 
-  const payments = state.payments.filter((p) => p.status === 'confirmed' && inMonth(p.date))
+  const payments = state.payments.filter((p) => inMonth(p.date))
   const received = payments.reduce((s, p) => s + p.amount, 0)
 
   const monthWorkouts = state.workouts.filter((w) => inMonth(w.startsAt))
@@ -203,6 +196,5 @@ export function monthFinance(state: AppState, month: Date): MonthFinance {
     expected,
     debtTotal: debtors.reduce((s, d) => s + d.debtTotal, 0),
     debtors,
-    pending: state.payments.filter((p) => p.status === 'pending').sort((a, b) => b.date.localeCompare(a.date)),
   }
 }

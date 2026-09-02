@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNo
 import type { AppState, Attendance, Client, Group, Payment, User, Workout, WorkoutStatus } from './types'
 import { createSeed } from './seed'
 
-const STORAGE_KEY = 'fittrainer.state.v2'
+const STORAGE_KEY = 'fittrainer.state.v3'
 
 export type Action =
   | { type: 'user/add'; user: User }
@@ -15,7 +15,6 @@ export type Action =
   | { type: 'group/addMember'; id: string; clientId: string }
   | { type: 'group/removeMember'; id: string; clientId: string }
   | { type: 'payment/add'; payment: Payment }
-  | { type: 'payment/confirm'; id: string }
   | { type: 'payment/remove'; id: string }
   | { type: 'workout/add'; workout: Workout }
   | { type: 'workout/setStatus'; id: string; status: WorkoutStatus }
@@ -65,8 +64,6 @@ function reducer(state: AppState, action: Action): AppState {
       }
     case 'payment/add':
       return { ...state, payments: [...state.payments, action.payment] }
-    case 'payment/confirm':
-      return { ...state, payments: state.payments.map((p) => (p.id === action.id ? { ...p, status: 'confirmed' } : p)) }
     case 'payment/remove':
       return { ...state, payments: state.payments.filter((p) => p.id !== action.id) }
     case 'workout/add':

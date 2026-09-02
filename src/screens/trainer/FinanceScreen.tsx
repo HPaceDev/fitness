@@ -19,7 +19,7 @@ export function FinanceScreen() {
 
   const fin = useMemo(() => monthFinance(state, month), [state, month])
   const payments = useMemo(
-    () => state.payments.filter((p) => p.status === 'confirmed' && isSameMonth(parseLocal(p.date), month)).sort((a, b) => b.date.localeCompare(a.date)),
+    () => state.payments.filter((p) => isSameMonth(parseLocal(p.date), month)).sort((a, b) => b.date.localeCompare(a.date)),
     [state.payments, month],
   )
 
@@ -46,37 +46,6 @@ export function FinanceScreen() {
           </button>
         </div>
       </header>
-
-      {fin.pending.length > 0 && (
-        <section className="section" style={{ marginTop: 0 }}>
-          <div className="section__title">Ждут подтверждения</div>
-          <div className="list">
-            {fin.pending.map((p) => {
-              const c = clientById(state, p.clientId)
-              return (
-                <div key={p.id} className="row" style={{ background: 'var(--yellow-soft)' }}>
-                  {c && <Avatar name={c.name} id={c.id} />}
-                  <div className="row__body">
-                    <div className="row__title">{c?.name ?? '—'}</div>
-                    <div className="row__sub">
-                      {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'}
-                      <br />
-                      {formatDateShort(parseLocal(p.date))}
-                      {p.comment ? ` · ${p.comment}` : ''}
-                    </div>
-                  </div>
-                  <div className="row__right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                    <div className="bold num">{formatMoney(p.amount)}</div>
-                    <button className="btn btn--sm" onClick={() => dispatch({ type: 'payment/confirm', id: p.id })}>
-                      Подтвердить
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
 
       <div className="stats">
         <div className="stat stat--accent stat--wide">
