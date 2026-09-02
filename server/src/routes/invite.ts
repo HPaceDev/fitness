@@ -1,10 +1,10 @@
 import type { FastifyInstance } from 'fastify'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import type { Db } from '../db/index.js'
 import { schema } from '../db/index.js'
 import { requireRole } from '../auth.js'
-import { getBotUsername, makeLinkCode, telegramEnabled, unlink } from '../telegram.js'
+import { getBotUsername, makeLinkCode, sendMessage, telegramEnabled, unlink } from '../telegram.js'
 
 /** Приглашение по ссылке: кто зовёт и кого */
 export function inviteRoutes(app: FastifyInstance, db: Db) {
@@ -14,6 +14,30 @@ export function inviteRoutes(app: FastifyInstance, db: Db) {
     if (!c) return reply.code(404).send({ error: 'Ссылка недействительна' })
     const [t] = await db.select().from(schema.users).where(eq(schema.users.id, c.trainerId))
     return { trainerName: t?.name ?? '', clientName: c.name, phone: c.phone ?? null, linked: !!c.userId }
+  })
+
+  /**
+   * Напомнить подопечному об оплате. Если у него подключён Telegram — уходит через бота,
+   * иначе возвращаем готовый текст, который тренер отправит сам.
+   */
+  app.post('/api/remind/payment', { preHandler: requireRole('trainer') }, async (req, reply) => {
+    const body = z.object({ clientId: z.string(), text: z.string().min(1).max(1000) }).safeParse(req.body)
+    if (!body.success) return reply.code(400).send({ error: 'Нужны clientId и text' })
+    const [c] = await db
+      .select()
+      .from(schema.clients)
+      .where(and(eq(schema.clients.id, body.data.clientId), eq(schema.clients.trainerId, req.user!.id)))
+    if (!c) return reply.code(404).send({ error: 'Подопечный не найден' })
+    let chat: string | null = null
+    if (c.userId) {
+      const [u] = await db.select({ chat: schema.users.telegramChatId }).from(schema.users).where(eq(schema.users.id, c.userId))
+      chat = u?.chat ?? null
+    }
+    if (chat && telegramEnabled) {
+      const ok = await sendMessage(chat, body.data.text.replace(/&/g, '&amp;').replace(/</g, '&lt;'))
+      if (ok) return { sent: true }
+    }
+    return { sent: false }
   })
 
   /** Ссылка для подключения Telegram текущему пользователю */

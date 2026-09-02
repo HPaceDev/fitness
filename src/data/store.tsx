@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { AppState, Attendance, Client, ExerciseEntry, Group, Payment, Workout, WorkoutStatus } from './types'
+import type { AppState, Attendance, Client, ExerciseEntry, Group, Measurement, Payment, Workout, WorkoutStatus } from './types'
 import { api, ApiError } from '../api/client'
 
 /**
@@ -27,6 +27,9 @@ export type Action =
   | { type: 'workout/remove'; id: string }
   | { type: 'exercise/add'; entry: ExerciseEntry }
   | { type: 'exercise/remove'; id: string }
+  | { type: 'measurement/add'; entry: Measurement }
+  | { type: 'measurement/remove'; id: string }
+  | { type: 'trainer/update'; patch: { payDetails?: string } }
 
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -44,6 +47,7 @@ export function reducer(state: AppState, action: Action): AppState {
         payments: state.payments.filter((p) => p.clientId !== action.id),
         workouts: state.workouts.filter((w) => w.clientId !== action.id),
         exercises: state.exercises.filter((e) => e.clientId !== action.id),
+        measurements: state.measurements.filter((m) => m.clientId !== action.id),
       }
     case 'group/add':
       return { ...state, groups: [...state.groups, action.group] }
@@ -104,10 +108,16 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, exercises: [...state.exercises, action.entry] }
     case 'exercise/remove':
       return { ...state, exercises: state.exercises.filter((e) => e.id !== action.id) }
+    case 'measurement/add':
+      return { ...state, measurements: [...state.measurements, action.entry] }
+    case 'measurement/remove':
+      return { ...state, measurements: state.measurements.filter((m) => m.id !== action.id) }
+    case 'trainer/update':
+      return state.trainer ? { ...state, trainer: { ...state.trainer, ...action.patch } } : state
   }
 }
 
-export const EMPTY_STATE: AppState = { clients: [], groups: [], payments: [], workouts: [], exercises: [] }
+export const EMPTY_STATE: AppState = { clients: [], groups: [], payments: [], workouts: [], exercises: [], measurements: [] }
 
 interface StoreValue {
   state: AppState

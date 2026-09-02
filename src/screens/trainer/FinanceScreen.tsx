@@ -7,6 +7,7 @@ import { Avatar } from '../../components/Avatar'
 import { formatDateShort, formatMonth, isSameMonth, parseLocal, plural, sessionsWord } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
 import { TelegramCard } from '../../components/TelegramCard'
+import { PayDetailsCard } from '../../components/PayDetailsCard'
 
 export function FinanceScreen() {
   const { state } = useStore()
@@ -125,6 +126,7 @@ export function FinanceScreen() {
 
       <section className="section">
         <div className="section__title">Аккаунт</div>
+        <PayDetailsCard />
         <TelegramCard role="trainer" />
         <div className="card small muted" style={{ marginTop: 10 }}>
           {state.trainer ? `${state.trainer.name} · ${state.trainer.phone}` : ''}

@@ -53,13 +53,28 @@ export interface WorkoutDto {
   attendance?: Record<string, 'present' | 'missed' | 'excused'>
   note?: string
 }
+export interface MeasurementDto {
+  id: string
+  clientId: string
+  date: string
+  weightKg?: number
+  chest?: number
+  waist?: number
+  belly?: number
+  sides?: number
+  hips?: number
+  thigh?: number
+  biceps?: number
+  note?: string
+}
 export interface StateDto {
-  trainer: { id: string; name: string; phone: string }
+  trainer: { id: string; name: string; phone: string; payDetails?: string }
   clients: ClientDto[]
   groups: GroupDto[]
   payments: PaymentDto[]
   workouts: WorkoutDto[]
   exercises: ExerciseDto[]
+  measurements: MeasurementDto[]
 }
 
 const und = <T>(v: T | null): T | undefined => (v === null ? undefined : v)
@@ -89,6 +104,22 @@ function toExercise(e: typeof schema.exerciseEntries.$inferSelect): ExerciseDto 
     reps: und(e.reps),
     sets: und(e.sets),
     note: und(e.note),
+  }
+}
+function toMeasurement(m: typeof schema.measurements.$inferSelect): MeasurementDto {
+  return {
+    id: m.id,
+    clientId: m.clientId,
+    date: m.date,
+    weightKg: und(m.weightKg),
+    chest: und(m.chest),
+    waist: und(m.waist),
+    belly: und(m.belly),
+    sides: und(m.sides),
+    hips: und(m.hips),
+    thigh: und(m.thigh),
+    biceps: und(m.biceps),
+    note: und(m.note),
   }
 }
 function toPayment(p: typeof schema.payments.$inferSelect): PaymentDto {
@@ -129,20 +160,22 @@ async function groupsWithMembers(db: Db, groupRows: (typeof schema.groups.$infer
 /** Всё состояние кабинета тренера */
 export async function trainerState(db: Db, trainerId: string): Promise<StateDto> {
   const [trainer] = await db.select().from(schema.users).where(eq(schema.users.id, trainerId))
-  const [clientRows, groupRows, paymentRows, workoutRows, exerciseRows] = await Promise.all([
+  const [clientRows, groupRows, paymentRows, workoutRows, exerciseRows, measurementRows] = await Promise.all([
     db.select().from(schema.clients).where(eq(schema.clients.trainerId, trainerId)),
     db.select().from(schema.groups).where(eq(schema.groups.trainerId, trainerId)),
     db.select().from(schema.payments).where(eq(schema.payments.trainerId, trainerId)),
     db.select().from(schema.workouts).where(eq(schema.workouts.trainerId, trainerId)),
     db.select().from(schema.exerciseEntries).where(eq(schema.exerciseEntries.trainerId, trainerId)),
+    db.select().from(schema.measurements).where(eq(schema.measurements.trainerId, trainerId)),
   ])
   return {
-    trainer: { id: trainer!.id, name: trainer!.name, phone: trainer!.phone },
+    trainer: { id: trainer!.id, name: trainer!.name, phone: trainer!.phone, payDetails: und(trainer!.payDetails) },
     clients: clientRows.map(toClient),
     groups: await groupsWithMembers(db, groupRows),
     payments: paymentRows.map(toPayment),
     workouts: workoutRows.map(toWorkout),
     exercises: exerciseRows.map(toExercise),
+    measurements: measurementRows.map(toMeasurement),
   }
 }
 
@@ -169,12 +202,14 @@ export async function clientState(db: Db, userId: string): Promise<StateDto | nu
       ),
     )
   const exerciseRows = await db.select().from(schema.exerciseEntries).where(eq(schema.exerciseEntries.clientId, me.id))
+  const measurementRows = await db.select().from(schema.measurements).where(eq(schema.measurements.clientId, me.id))
   return {
-    trainer: { id: trainer!.id, name: trainer!.name, phone: trainer!.phone },
+    trainer: { id: trainer!.id, name: trainer!.name, phone: trainer!.phone, payDetails: und(trainer!.payDetails) },
     clients: [{ ...toClient(me), inviteToken: undefined }],
     groups: await groupsWithMembers(db, groupRows),
     payments: paymentRows.map(toPayment),
     workouts: workoutRows.map(toWorkout),
     exercises: exerciseRows.map(toExercise),
+    measurements: measurementRows.map(toMeasurement),
   }
 }

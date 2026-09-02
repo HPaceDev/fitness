@@ -169,6 +169,32 @@ async function lowBalance(db: Db, now: Date) {
   }
 }
 
+/** По понедельникам в 10:00 тренеру: кому пора делать замеры (прошло 60 дней или их не было) */
+export const MEASURE_INTERVAL_DAYS = 60
+async function measurementsDue(db: Db, now: Date) {
+  if (now.getDay() !== 1 || now.getHours() !== 10) return
+  const clients = await db.select().from(schema.clients)
+  const all = await db.select({ clientId: schema.measurements.clientId, date: schema.measurements.date }).from(schema.measurements)
+  const byTrainer = new Map<string, string[]>()
+  for (const c of clients) {
+    if (c.status === 'paused') continue
+    const dates = all.filter((m) => m.clientId === c.id).map((m) => m.date).sort()
+    const last = dates[dates.length - 1]
+    const ageDays = last ? (now.getTime() - new Date(last).getTime()) / 86_400_000 : (now.getTime() - c.createdAt.getTime()) / 86_400_000
+    if (last ? ageDays < MEASURE_INTERVAL_DAYS : ageDays < 14) continue
+    const list = byTrainer.get(c.trainerId) ?? []
+    list.push(`${esc(c.name)} — ${last ? `последние ${Math.floor(ageDays)} дн. назад` : 'начальных замеров нет'}`)
+    byTrainer.set(c.trainerId, list)
+  }
+  for (const [trainerId, list] of byTrainer) {
+    const chat = await chatOfUser(db, trainerId)
+    if (!chat) continue
+    await once(db, `measure:${trainerId}:${dateKey(now)}`, async () => {
+      await sendMessage(chat, `📏 Пора сделать замеры:\n${list.join('\n')}`)
+    })
+  }
+}
+
 export function startNotifications(db: Db) {
   if (!telegramEnabled) return
   let busy = false
@@ -181,6 +207,7 @@ export function startNotifications(db: Db) {
       await eveningDigest(db, now)
       await birthdays(db, now)
       await lowBalance(db, now)
+      await measurementsDue(db, now)
     } catch (e) {
       console.warn('notifications', (e as Error).message)
     } finally {

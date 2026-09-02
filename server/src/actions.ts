@@ -88,6 +88,25 @@ export const ActionSchema = z.discriminatedUnion('type', [
     }),
   }),
   z.object({ type: z.literal('exercise/remove'), id }),
+  z.object({
+    type: z.literal('measurement/add'),
+    entry: z.object({
+      id,
+      clientId: id,
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      weightKg: z.number().min(0).max(500).optional(),
+      chest: z.number().min(0).max(300).optional(),
+      waist: z.number().min(0).max(300).optional(),
+      belly: z.number().min(0).max(300).optional(),
+      sides: z.number().min(0).max(300).optional(),
+      hips: z.number().min(0).max(300).optional(),
+      thigh: z.number().min(0).max(300).optional(),
+      biceps: z.number().min(0).max(300).optional(),
+      note: z.string().max(500).optional(),
+    }),
+  }),
+  z.object({ type: z.literal('measurement/remove'), id }),
+  z.object({ type: z.literal('trainer/update'), patch: z.object({ payDetails: z.string().max(300).optional() }) }),
 ])
 export type Action = z.infer<typeof ActionSchema>
 
@@ -300,6 +319,38 @@ export async function applyAction(db: Db, trainerId: string, action: Action): Pr
       })
       return
     }
+    case 'measurement/add': {
+      const m = action.entry
+      await ownClient(db, trainerId, m.clientId)
+      await db.insert(schema.measurements).values({
+        id: m.id,
+        trainerId,
+        clientId: m.clientId,
+        date: m.date,
+        weightKg: m.weightKg ?? null,
+        chest: m.chest ?? null,
+        waist: m.waist ?? null,
+        belly: m.belly ?? null,
+        sides: m.sides ?? null,
+        hips: m.hips ?? null,
+        thigh: m.thigh ?? null,
+        biceps: m.biceps ?? null,
+        note: m.note ?? null,
+      })
+      return
+    }
+    case 'measurement/remove': {
+      const [m] = await db
+        .select()
+        .from(schema.measurements)
+        .where(and(eq(schema.measurements.id, action.id), eq(schema.measurements.trainerId, trainerId)))
+      if (!m) throw new ActionError('Замер не найден', 404)
+      await db.delete(schema.measurements).where(eq(schema.measurements.id, action.id))
+      return
+    }
+    case 'trainer/update':
+      await db.update(schema.users).set({ payDetails: action.patch.payDetails?.trim() || null }).where(eq(schema.users.id, trainerId))
+      return
     case 'exercise/remove': {
       const [e] = await db
         .select()

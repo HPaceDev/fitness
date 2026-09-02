@@ -91,12 +91,40 @@ export interface ExerciseEntry {
   note?: string
 }
 
+/** Замер подопечного: первая запись — начальные данные. Сантиметры, вес в кг */
+export interface Measurement {
+  id: ID
+  clientId: ID
+  date: string
+  weightKg?: number
+  chest?: number
+  waist?: number
+  belly?: number
+  sides?: number
+  hips?: number
+  thigh?: number
+  biceps?: number
+  note?: string
+}
+export type MeasureKey = 'weightKg' | 'chest' | 'waist' | 'belly' | 'sides' | 'hips' | 'thigh' | 'biceps'
+export const MEASURE_FIELDS: { key: MeasureKey; label: string; unit: string }[] = [
+  { key: 'weightKg', label: 'Вес', unit: 'кг' },
+  { key: 'chest', label: 'Грудь', unit: 'см' },
+  { key: 'waist', label: 'Талия', unit: 'см' },
+  { key: 'belly', label: 'Живот', unit: 'см' },
+  { key: 'sides', label: 'Бока', unit: 'см' },
+  { key: 'hips', label: 'Попа', unit: 'см' },
+  { key: 'thigh', label: 'Нога', unit: 'см' },
+  { key: 'biceps', label: 'Бицепс', unit: 'см' },
+]
+
 export interface AppState {
   /** Тренер, чей это кабинет (для подопечного — его тренер) */
-  trainer?: { id: ID; name: string; phone: string }
+  trainer?: { id: ID; name: string; phone: string; payDetails?: string }
   clients: Client[]
   groups: Group[]
   payments: Payment[]
   workouts: Workout[]
   exercises: ExerciseEntry[]
+  measurements: Measurement[]
 }

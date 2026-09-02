@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { useStore } from '../../data/store'
-import { clientByUser, clientStats, consumesFor, exerciseProgress, groupById, involvesClient } from '../../data/selectors'
+import { clientByUser, clientStats, consumesFor, exerciseProgress, groupById, involvesClient, measurementStatus } from '../../data/selectors'
+import { MeasurementsSummary } from '../../components/MeasurementsTable'
 import { ProgressList } from '../../components/ProgressList'
 import { PoolCard } from '../../components/PoolCard'
 import { WorkoutCard } from '../../components/WorkoutCard'
@@ -31,6 +32,7 @@ export function SubscriptionScreen() {
   )
 
   const progress = useMemo(() => (client ? exerciseProgress(state, client.id) : []), [state, client])
+  const measures = useMemo(() => (client ? measurementStatus(state, client) : null), [state, client])
 
   if (!client || !stats) return <NoClientCard />
 
@@ -92,6 +94,16 @@ export function SubscriptionScreen() {
         </div>
         <ProgressList items={progress} />
       </section>
+
+      {measures?.last && (
+        <section className="section">
+          <div className="section__title">
+            <span>Мои замеры</span>
+            <small>{measures.history.length} {measures.history.length === 1 ? 'замер' : measures.history.length < 5 ? 'замера' : 'замеров'}</small>
+          </div>
+          <MeasurementsSummary status={measures} />
+        </section>
+      )}
 
       <section className="section">
         <div className="section__title">

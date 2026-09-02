@@ -13,6 +13,8 @@ export const users = pgTable('users', {
   /** Telegram: чат для уведомлений и одноразовый код привязки */
   telegramChatId: text('telegram_chat_id'),
   telegramLinkCode: text('telegram_link_code').unique(),
+  /** Реквизиты тренера для оплаты, подставляются в напоминания подопечным */
+  payDetails: text('pay_details'),
 })
 
 export const sessions = pgTable('sessions', {
@@ -127,4 +129,29 @@ export const exerciseEntries = pgTable('exercise_entries', {
 export const notificationsSent = pgTable('notifications_sent', {
   key: text('key').primaryKey(),
   sentAt: timestamp('sent_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * Замеры подопечного. Первая запись — начальные данные.
+ * Все поля в сантиметрах, вес в килограммах; любое поле можно не заполнять.
+ */
+export const measurements = pgTable('measurements', {
+  id: text('id').primaryKey(),
+  trainerId: text('trainer_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  clientId: text('client_id')
+    .notNull()
+    .references(() => clients.id, { onDelete: 'cascade' }),
+  date: date('date').notNull(),
+  weightKg: real('weight_kg'),
+  chest: real('chest'),
+  waist: real('waist'),
+  belly: real('belly'),
+  sides: real('sides'),
+  hips: real('hips'),
+  thigh: real('thigh'),
+  biceps: real('biceps'),
+  note: text('note'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 })

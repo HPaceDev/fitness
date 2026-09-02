@@ -1,5 +1,5 @@
-import type { AppState, Client, ExerciseEntry, Group, Workout } from './types'
-import { isSameMonth, parseLocal, startOfDay, toDateKey } from '../utils/date'
+import type { AppState, Client, ExerciseEntry, Group, Measurement, Workout } from './types'
+import { formatDayLong, formatTime, isSameMonth, parseLocal, startOfDay, toDateKey } from '../utils/date'
 
 /** Статусы персональной тренировки, которые списывают занятие с абонемента */
 export const CONSUMING_STATUSES: Workout['status'][] = ['done', 'missed']
@@ -289,4 +289,73 @@ export function upcomingBirthdays(state: AppState, days = 7, now = new Date()): 
     out.push({ client: c, inDays, age })
   }
   return out.sort((a, b) => a.inDays - b.inDays)
+}
+
+/* ---------- Оплата: последнее оплаченное занятие ---------- */
+
+export interface PaymentAlert {
+  client: Client
+  pool: PoolStats
+  nextWorkout?: Workout
+}
+
+/** У кого абонемент кончился или осталось одно занятие, а тренировки запланированы */
+export function paymentAlerts(state: AppState, now = new Date()): PaymentAlert[] {
+  const out: PaymentAlert[] = []
+  for (const c of state.clients) {
+    if (c.status === 'paused') continue
+    const st = clientStats(state, c, now)
+    for (const pool of st.pools) {
+      if (pool.purchased === 0 && pool.used === 0) continue
+      if (pool.remaining > 1 || pool.planned === 0) continue
+      const next = state.workouts
+        .filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= now && (pool.groupId ? w.groupId === pool.groupId : w.clientId === c.id))
+        .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0]
+      out.push({ client: c, pool, nextWorkout: next })
+    }
+  }
+  return out.sort((a, b) => a.pool.remaining - b.pool.remaining)
+}
+
+/** Текст напоминания подопечному об оплате */
+export function paymentReminderText(state: AppState, alert: PaymentAlert): string {
+  const first = alert.client.name.split(' ')[0]
+  const what = alert.pool.groupId ? `по группе «${alert.pool.label}»` : 'по персональным тренировкам'
+  const left = alert.pool.remaining <= 0 ? `занятия закончились` : `осталось последнее занятие`
+  const next = alert.nextWorkout ? `, следующая тренировка ${formatDayLong(parseLocal(alert.nextWorkout.startsAt)).toLowerCase()} в ${formatTime(parseLocal(alert.nextWorkout.startsAt))}` : ''
+  const pack = `Продлить: 8 занятий = ${(8 * alert.pool.price).toLocaleString('ru-RU')} ₽, 4 занятия = ${(4 * alert.pool.price).toLocaleString('ru-RU')} ₽.`
+  const details = state.trainer?.payDetails ? ` Реквизиты: ${state.trainer.payDetails}.` : ''
+  return `${first}, привет! У вас ${left} ${what}${next}. ${pack}${details}`
+}
+
+/* ---------- Замеры ---------- */
+
+export const MEASURE_INTERVAL_DAYS = 60
+
+export interface MeasurementStatus {
+  first?: Measurement
+  last?: Measurement
+  prev?: Measurement
+  history: Measurement[] // от новых к старым
+  daysSince?: number
+  /** Пора делать замеры */
+  due: boolean
+}
+
+export function measurementStatus(state: AppState, client: Client, now = new Date()): MeasurementStatus {
+  const history = state.measurements.filter((m) => m.clientId === client.id).sort((a, b) => b.date.localeCompare(a.date))
+  const last = history[0]
+  const first = history[history.length - 1]
+  const daysSince = last ? Math.floor((startOfDay(now).getTime() - parseLocal(last.date).getTime()) / 86_400_000) : undefined
+  const sinceCreated = Math.floor((now.getTime() - parseLocal(client.createdAt).getTime()) / 86_400_000)
+  const due = client.status !== 'paused' && (last ? daysSince! >= MEASURE_INTERVAL_DAYS : sinceCreated >= 14)
+  return { first, last, prev: history[1], history, daysSince, due }
+}
+
+/** Кому пора делать замеры */
+export function measurementsDue(state: AppState, now = new Date()): { client: Client; status: MeasurementStatus }[] {
+  return state.clients
+    .map((client) => ({ client, status: measurementStatus(state, client, now) }))
+    .filter((x) => x.status.due)
+    .sort((a, b) => (b.status.daysSince ?? 9999) - (a.status.daysSince ?? 9999))
 }

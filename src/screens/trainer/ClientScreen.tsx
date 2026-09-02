@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useStore } from '../../data/store'
-import { clientById, clientStats, exerciseProgress, groupById, groupsOfClient, involvesClient } from '../../data/selectors'
+import { clientById, clientStats, exerciseProgress, groupById, groupsOfClient, involvesClient, measurementStatus } from '../../data/selectors'
+import { MeasurementSheet } from '../../components/MeasurementSheet'
+import { MeasurementsHistory, MeasurementsSummary } from '../../components/MeasurementsTable'
 import { ExerciseSheet } from '../../components/ExerciseSheet'
 import { ProgressList } from '../../components/ProgressList'
 import type { Workout } from '../../data/types'
@@ -24,7 +26,9 @@ export function ClientScreen() {
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(false)
   const [openWorkout, setOpenWorkout] = useState<Workout | null>(null)
-  const [tab, setTab] = useState<'workouts' | 'payments' | 'progress'>('progress')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState<'workouts' | 'payments' | 'progress' | 'measurements'>(params.get('tab') === 'measurements' ? 'measurements' : 'progress')
+  const [measuring, setMeasuring] = useState(false)
   const [logging, setLogging] = useState(false)
   const [inviting, setInviting] = useState(false)
 
@@ -36,6 +40,7 @@ export function ClientScreen() {
   const payments = useMemo(() => state.payments.filter((p) => p.clientId === id).sort((a, b) => b.date.localeCompare(a.date)), [state.payments, id])
   const groups = client ? groupsOfClient(state, client.id) : []
   const progress = useMemo(() => (client ? exerciseProgress(state, client.id) : []), [state, client])
+  const measures = useMemo(() => (client ? measurementStatus(state, client) : null), [state, client])
 
   if (!client || !stats) {
     return (
@@ -119,15 +124,39 @@ export function ClientScreen() {
       <section className="section">
         <div className="seg" style={{ marginBottom: 10 }}>
           <button className={`seg__item${tab === 'progress' ? ' seg__item--active' : ''}`} onClick={() => setTab('progress')}>
-            Прогресс · {progress.length}
+            Прогресс
+          </button>
+          <button className={`seg__item${tab === 'measurements' ? ' seg__item--active' : ''}`} onClick={() => setTab('measurements')}>
+            Замеры{measures?.due ? ' •' : ''}
           </button>
           <button className={`seg__item${tab === 'workouts' ? ' seg__item--active' : ''}`} onClick={() => setTab('workouts')}>
-            Тренировки · {workouts.length}
+            Трен.
           </button>
           <button className={`seg__item${tab === 'payments' ? ' seg__item--active' : ''}`} onClick={() => setTab('payments')}>
-            Оплаты · {payments.length}
+            Оплаты
           </button>
         </div>
+
+        {tab === 'measurements' && measures && (
+          <div>
+            {measures.due && (
+              <div className="card small" style={{ background: 'var(--yellow-soft)', color: 'var(--yellow-text)', marginBottom: 10 }}>
+                {measures.last ? `Прошло ${measures.daysSince} дн. с последних замеров, пора обновить.` : 'Начальных замеров ещё нет. Сделайте их, чтобы видеть результат.'}
+              </div>
+            )}
+            <button className="btn" style={{ marginBottom: 10 }} onClick={() => setMeasuring(true)}>
+              {measures.last ? '+ Новые замеры' : '+ Начальные замеры'}
+            </button>
+            <MeasurementsSummary status={measures} />
+            {measures.history.length > 0 && (
+              <>
+                <div className="section__title" style={{ marginTop: 16 }}>История</div>
+                <MeasurementsHistory history={measures.history} onRemove={(id) => dispatch({ type: 'measurement/remove', id })} />
+              </>
+            )}
+            <p className="field__hint mt8">Напомним о замерах через {60} дней после последних.</p>
+          </div>
+        )}
 
         {tab === 'progress' && (
           <div>
@@ -185,6 +214,7 @@ export function ClientScreen() {
       <ClientSheet key={`e-${editing}`} open={editing} onClose={() => setEditing(false)} clientId={client.id} onRemoved={() => navigate('/clients')} />
       <WorkoutSheet workout={openWorkout} onClose={() => setOpenWorkout(null)} />
       <ExerciseSheet key={`ex-${logging}`} open={logging} onClose={() => setLogging(false)} clientId={client.id} />
+      <MeasurementSheet key={`m-${measuring}`} open={measuring} onClose={() => setMeasuring(false)} clientId={client.id} />
       <InviteSheet open={inviting} onClose={() => setInviting(false)} clientId={client.id} />
     </div>
   )

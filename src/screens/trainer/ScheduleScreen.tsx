@@ -9,6 +9,8 @@ import { SessionsPill } from '../../components/StatusPill'
 import { WorkoutCard } from '../../components/WorkoutCard'
 import { AddWorkoutSheet } from './forms'
 import { WorkoutSheet } from './WorkoutSheet'
+import { PaymentAlerts } from '../../components/PaymentAlerts'
+import { MeasureDue } from '../../components/MeasureDue'
 
 const DAYS_BACK = 7
 const DAYS_FWD = 21
@@ -41,7 +43,10 @@ export function ScheduleScreen() {
     if (!w.clientId) return null
     const c = clientById(state, w.clientId)
     if (!c) return null
-    return <SessionsPill remaining={clientStats(state, c).personal.remaining} />
+    const remaining = clientStats(state, c).personal.remaining
+    if (w.status === 'planned' && remaining === 1) return <span className="pill pill--yellow">последнее оплаченное</span>
+    if (w.status === 'planned' && remaining <= 0) return <span className="pill pill--red">не оплачено</span>
+    return <SessionsPill remaining={remaining} />
   }
 
   return (
@@ -68,6 +73,9 @@ export function ScheduleScreen() {
           </button>
         </div>
       </header>
+
+      <PaymentAlerts />
+      <MeasureDue />
 
       {birthdays.map((b) => (
         <Link key={b.client.id} to={`/clients/${b.client.id}`} className="bday">

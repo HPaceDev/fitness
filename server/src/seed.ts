@@ -34,7 +34,7 @@ export async function seedDemo(db: Db) {
   const anna = newId()
   const igor = newId()
   await db.insert(schema.users).values([
-    { id: tid, role: 'trainer', name: 'Алексей Громов', phone: DEMO_TRAINER_PHONE, passwordHash: hash },
+    { id: tid, role: 'trainer', name: 'Алексей Громов', phone: DEMO_TRAINER_PHONE, passwordHash: hash, payDetails: 'Сбер по номеру +7 900 000-00-01, Алексей Г.' },
     { id: anna, role: 'client', name: 'Анна Смирнова', phone: '79161234567', passwordHash: hash },
     { id: igor, role: 'client', name: 'Игорь Петров', phone: '79035551020', passwordHash: hash },
   ])
@@ -146,6 +146,26 @@ export async function seedDemo(db: Db) {
     ex(c.c3, -4, 'Румынская тяга', 40, 10),
     ex(c.c3, -1, 'Румынская тяга', 45, 10),
     ex(c.c3, -1, 'Жим ногами', 80, 12),
+  ])
+  const ms = (clientId: string, dayOffset: number, v: Partial<{ weightKg: number; chest: number; waist: number; belly: number; sides: number; hips: number; thigh: number; biceps: number }>) => ({
+    id: newId(),
+    trainerId: tid,
+    clientId,
+    date: day(dayOffset),
+    weightKg: v.weightKg ?? null,
+    chest: v.chest ?? null,
+    waist: v.waist ?? null,
+    belly: v.belly ?? null,
+    sides: v.sides ?? null,
+    hips: v.hips ?? null,
+    thigh: v.thigh ?? null,
+    biceps: v.biceps ?? null,
+  })
+  await db.insert(schema.measurements).values([
+    ms(c.c1, -40, { weightKg: 64.5, chest: 90, waist: 72, belly: 80, sides: 84, hips: 98, thigh: 57, biceps: 27 }),
+    ms(c.c1, -5, { weightKg: 62.8, chest: 89, waist: 69, belly: 76, sides: 81, hips: 97, thigh: 56, biceps: 27.5 }),
+    ms(c.c3, -75, { weightKg: 71, chest: 94, waist: 78, belly: 88, hips: 104, thigh: 60, biceps: 29 }),
+    ms(c.c2, -30, { weightKg: 84, chest: 101, waist: 88, belly: 92, hips: 100, thigh: 58, biceps: 34 }),
   ])
   return true
 }
