@@ -3,7 +3,7 @@
 FROM node:22-alpine AS web
 WORKDIR /web
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 COPY index.html vite.config.ts tsconfig*.json ./
 COPY src ./src
 RUN npm run build
@@ -11,7 +11,7 @@ RUN npm run build
 FROM node:22-alpine AS server-build
 WORKDIR /srv
 COPY server/package.json server/package-lock.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 COPY server/tsconfig.json ./
 COPY server/src ./src
 RUN npm run build && npm prune --omit=dev

@@ -1,6 +1,9 @@
-# Автодеплой: при каждом пуше в main заходим на сервер по SSH и запускаем
-# установщик в тихом режиме. Нужны секреты репозитория: SSH_HOST, SSH_KEY
-# (см. scripts/setup-autodeploy.sh, он всё подготовит и подскажет).
+# Автодеплой: при пуше в main запускаем установщик на сервере.
+#
+# Сборка идёт в отрыве от SSH-сессии: она может длиться дольше, чем живёт
+# соединение, поэтому запускаем её через setsid и дальше опрашиваем результат
+# короткими подключениями. Нужны секреты SSH_HOST и SSH_KEY
+# (их печатает scripts/setup-autodeploy.sh на сервере).
 name: Deploy
 
 on:
@@ -12,10 +15,13 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 
+env:
+  SSH_OPTS: -i ~/.ssh/deploy -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=20 -o ServerAliveCountMax=6
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Настроить SSH
         env:
@@ -27,10 +33,49 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
           ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-      - name: Обновить сервер
+
+      - name: Запустить обновление на сервере
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER || 'root' }}
         run: |
-          ssh -i ~/.ssh/deploy -o BatchMode=yes "$SSH_USER@$SSH_HOST" \
-            'NONINTERACTIVE=1 bash <(curl -fsSL "https://raw.githubusercontent.com/HPaceDev/fitness/main/scripts/install-server.sh?$(date +%s)")'
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -eu
+          rm -f /tmp/fittrainer-deploy.done
+          : > /var/log/fittrainer-deploy.log
+          setsid nohup bash -c '
+            curl -fsSL "https://raw.githubusercontent.com/HPaceDev/fitness/main/scripts/install-server.sh?$(date +%s)" -o /tmp/fittrainer-install.sh
+            NONINTERACTIVE=1 bash /tmp/fittrainer-install.sh
+            echo $? > /tmp/fittrainer-deploy.done
+          ' >> /var/log/fittrainer-deploy.log 2>&1 < /dev/null &
+          sleep 2
+          echo "Обновление запущено на сервере"
+          REMOTE
+
+      - name: Дождаться результата
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER || 'root' }}
+        run: |
+          for i in $(seq 1 90); do
+            code="$(ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'cat /tmp/fittrainer-deploy.done 2>/dev/null' 2>/dev/null || true)"
+            if [ -n "$code" ]; then
+              echo "Установщик завершился с кодом $code. Последние строки лога:"
+              ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'tail -n 40 /var/log/fittrainer-deploy.log' || true
+              exit "$code"
+            fi
+            # Показываем, что происходит, чтобы шаг не выглядел зависшим
+            [ $((i % 4)) -eq 0 ] && ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'tail -n 2 /var/log/fittrainer-deploy.log' 2>/dev/null || true
+            sleep 15
+          done
+          echo "Установщик не завершился за 22 минуты. Лог:"
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" 'tail -n 60 /var/log/fittrainer-deploy.log' || true
+          exit 1
+
+      - name: Проверить, что приложение отвечает
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER || 'root' }}
+        run: |
+          ssh $SSH_OPTS "$SSH_USER@$SSH_HOST" \
+            'docker exec fittrainer-app node -e "fetch(\"http://127.0.0.1:3000/api/health\").then(r=>r.json()).then(j=>{console.log(\"health:\",JSON.stringify(j));process.exit(j.ok?0:1)}).catch(e=>{console.log(e.message);process.exit(1)})"'
