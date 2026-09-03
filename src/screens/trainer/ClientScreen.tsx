@@ -4,6 +4,7 @@ import { useStore } from '../../data/store'
 import { clientById, clientStats, exerciseProgress, groupsOfClient, involvesClient, measurementStatus } from '../../data/selectors'
 import { MeasurementSheet } from '../../components/MeasurementSheet'
 import { MeasurementsHistory, MeasurementsSummary } from '../../components/MeasurementsTable'
+import { PencilSimple, Plus } from '../../components/icons'
 import { ExerciseSheet } from '../../components/ExerciseSheet'
 import { ProgressList } from '../../components/ProgressList'
 import type { Workout } from '../../data/types'
@@ -71,7 +72,7 @@ export function ClientScreen() {
           </div>
         </div>
         <button className="icon-btn icon-btn--ghost" onClick={() => setEditing(true)} aria-label="Редактировать">
-          ✎
+          <PencilSimple size={20} />
         </button>
       </div>
       {client.note && (
@@ -145,7 +146,7 @@ export function ClientScreen() {
               </div>
             )}
             <button className="btn" style={{ marginBottom: 10 }} onClick={() => setMeasuring(true)}>
-              {measures.last ? '+ Новые замеры' : '+ Начальные замеры'}
+              <Plus size={18} weight="bold" /> {measures.last ? 'Новые замеры' : 'Начальные замеры'}
             </button>
             <MeasurementsSummary status={measures} />
             {measures.history.length > 0 && (
@@ -161,7 +162,7 @@ export function ClientScreen() {
         {tab === 'progress' && (
           <div>
             <button className="btn" style={{ marginBottom: 10 }} onClick={() => setLogging(true)}>
-              + Записать упражнение
+              <Plus size={18} weight="bold" /> Записать упражнение
             </button>
             <ProgressList items={progress} onRemove={(id) => dispatch({ type: 'exercise/remove', id })} />
             <p className="field__hint mt8">Напечатайте упражнение, приложение подскажет название из ваших записей и покажет прошлый вес.</p>

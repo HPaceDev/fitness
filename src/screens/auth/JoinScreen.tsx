@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { api, ApiError } from '../../api/client'
 import { formatPhone } from '../../utils/phone'
+import { markOnboarded } from './WelcomeScreen'
 
 interface Invite {
   trainerName: string
@@ -25,6 +26,7 @@ export function JoinScreen() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    markOnboarded()
     api<Invite>(`/api/invite/${token}`)
       .then((i) => {
         setInvite(i)

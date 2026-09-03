@@ -5,6 +5,7 @@ import { TabBar } from './components/TabBar'
 import { LoginScreen } from './screens/auth/LoginScreen'
 import { RegisterScreen } from './screens/auth/RegisterScreen'
 import { JoinScreen } from './screens/auth/JoinScreen'
+import { WelcomeScreen, isOnboarded } from './screens/auth/WelcomeScreen'
 import { ScheduleScreen } from './screens/trainer/ScheduleScreen'
 import { ClientsScreen } from './screens/trainer/ClientsScreen'
 import { ClientScreen } from './screens/trainer/ClientScreen'
@@ -15,11 +16,16 @@ import { SubscriptionScreen } from './screens/client/SubscriptionScreen'
 import { ProfileScreen } from './screens/client/ProfileScreen'
 import { AdminApp } from './screens/admin/AdminApp'
 
-function Splash({ text }: { text: string }) {
+/** Скелет вместо крутилки: форма совпадает с тем, что появится */
+function Splash() {
   return (
     <div className="app">
-      <div className="app__content app__content--plain" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="muted">{text}</div>
+      <div className="app__content">
+        <div className="skel skel--head" />
+        <div className="skel skel--line" style={{ width: '40%', marginBottom: 22 }} />
+        <div className="skel skel--row" />
+        <div className="skel skel--row" />
+        <div className="skel skel--row" />
       </div>
     </div>
   )
@@ -28,23 +34,24 @@ function Splash({ text }: { text: string }) {
 /** Ждём первое состояние с сервера, потом рисуем кабинет */
 function Loaded({ children }: { children: React.ReactNode }) {
   const { loading } = useStore()
-  if (loading) return <Splash text="Загружаем…" />
+  if (loading) return <Splash />
   return <>{children}</>
 }
 
 function Shell() {
   const { user, loading } = useAuth()
 
-  if (loading) return <Splash text="Входим…" />
+  if (loading) return <Splash />
 
   if (!user) {
     return (
       <div className="app">
         <Routes>
+          <Route path="/welcome" element={<WelcomeScreen />} />
           <Route path="/login" element={<LoginScreen />} />
           <Route path="/register" element={<RegisterScreen />} />
           <Route path="/join/:token" element={<JoinScreen />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to={isOnboarded() ? '/login' : '/welcome'} replace />} />
         </Routes>
       </div>
     )

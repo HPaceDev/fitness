@@ -48,7 +48,7 @@ export function MeasurementSheet({ open, onClose, clientId }: { open: boolean; o
                 inputMode="decimal"
                 value={values[f.key]}
                 onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                placeholder={last?.[f.key] !== undefined ? String(last[f.key]) : '—'}
+                placeholder={last?.[f.key] !== undefined ? String(last[f.key]) : '0'}
               />
             </label>
           ))}

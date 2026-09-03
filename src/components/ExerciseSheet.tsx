@@ -4,6 +4,7 @@ import { formatEntry, knownExercises, lastEntryFor } from '../data/selectors'
 import { Sheet } from './Sheet'
 import { formatDateShort, parseLocal, toLocalInput } from '../utils/date'
 import { uid } from '../utils/id'
+import { Check } from './icons'
 import { catalogNames } from '../data/exercises'
 
 interface Props {
@@ -64,7 +65,10 @@ export function ExerciseSheet({ open, onClose, clientId, workoutId, defaultDate 
         {saved.length > 0 && (
           <div className="card small" style={{ background: 'var(--green-soft)', color: 'var(--green-text)' }}>
             {saved.map((s, i) => (
-              <div key={i}>✓ {s}</div>
+              <div key={i} className="flex" style={{ gap: 6 }}>
+                <Check size={14} weight="bold" />
+                {s}
+              </div>
             ))}
           </div>
         )}

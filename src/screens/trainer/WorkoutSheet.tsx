@@ -7,6 +7,7 @@ import { Sheet } from '../../components/Sheet'
 import { StatusPill, SessionsPill, ATTENDANCE_LABEL } from '../../components/StatusPill'
 import { formatDayLong, formatTime, parseLocal, toDateKey } from '../../utils/date'
 import { ExerciseSheet } from '../../components/ExerciseSheet'
+import { Barbell, Check } from '../../components/icons'
 import { useState } from 'react'
 
 const ATT: Attendance[] = ['present', 'missed', 'excused']
@@ -78,7 +79,7 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
               const cur = w.attendance?.[cid]
               return (
                 <div key={cid} className="row row--stack">
-                  <div className="row__title">{c?.name ?? '—'}</div>
+                  <div className="row__title">{c?.name ?? 'Без имени'}</div>
                   <div className="att">
                     {ATT.map((a) => (
                       <button
@@ -94,14 +95,14 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
               )
             })}
           </div>
-          <p className="field__hint mt8">«Был» и «Пропуск» списывают занятие с абонемента на группу, «Не считать» — нет.</p>
+          <p className="field__hint mt8">«Был» и «Пропуск» списывают занятие с абонемента. «Не считать» не списывает.</p>
         </section>
       )}
 
       {client && (w.status === 'done' || w.status === 'planned') && (
         <div className="btn-row">
           <button className="btn btn--secondary" onClick={() => setLogging(true)}>
-            🏋️ Записать прогресс
+            <Barbell size={18} /> Записать прогресс
           </button>
         </div>
       )}
@@ -113,7 +114,7 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
         <>
           <div className="btn-row">
             <button className="btn" onClick={() => setStatus('done')}>
-              ✓ Проведена
+              <Check size={18} weight="bold" /> Проведена
             </button>
           </div>
           <div className="btn-row">
@@ -126,7 +127,7 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
               Отменить
             </button>
           </div>
-          {!group && <p className="field__hint mt12">Пропуск списывает занятие с абонемента, отмена — нет.</p>}
+          {!group && <p className="field__hint mt12">Пропуск списывает занятие с абонемента. Отмена не списывает.</p>}
         </>
       ) : (
         <div className="btn-row">

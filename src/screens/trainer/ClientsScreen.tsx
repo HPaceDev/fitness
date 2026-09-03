@@ -7,6 +7,8 @@ import { SessionsPill } from '../../components/StatusPill'
 import { formatMoney } from '../../utils/money'
 import { formatDayLong, formatTime, parseLocal } from '../../utils/date'
 import { ClientSheet, GroupSheet } from './forms'
+import { Blank } from '../../components/Blank'
+import { Plus, UsersThree } from '../../components/icons'
 
 export function ClientsScreen() {
   const { state } = useStore()
@@ -30,7 +32,7 @@ export function ClientsScreen() {
           </p>
         </div>
         <button className="icon-btn icon-btn--primary" onClick={() => setAddingClient(true)} aria-label="Добавить подопечного">
-          +
+          <Plus size={22} weight="bold" />
         </button>
       </header>
 
@@ -38,11 +40,11 @@ export function ClientsScreen() {
         <div className="section__title">
           <span>Группы</span>
           <button className="btn btn--ghost btn--sm" style={{ minHeight: 24, padding: 0 }} onClick={() => setAddingGroup(true)}>
-            + Группа
+            <Plus size={14} weight="bold" /> Группа
           </button>
         </div>
         <div className="list">
-          {state.groups.length === 0 && <div className="empty">Групп пока нет. Создайте первую — цена занятия в группе одна для всех.</div>}
+          {state.groups.length === 0 && <div className="empty">Групп пока нет. Создайте первую: цена занятия в группе одна для всех.</div>}
           {state.groups.map((g) => (
             <Link key={g.id} to={`/groups/${g.id}`} className="row row--clickable">
               <span className="group-mark">{g.name.slice(0, 2).toUpperCase()}</span>
@@ -61,7 +63,18 @@ export function ClientsScreen() {
       <section className="section">
         <div className="section__title">Все подопечные</div>
         <div className="list">
-          {stats.length === 0 && <div className="empty">Никого нет</div>}
+          {stats.length === 0 && (
+            <Blank
+              icon={<UsersThree size={22} />}
+              title="Подопечных пока нет"
+              text="Добавьте первого: имя, телефон и цену занятия. Дальше можно ставить тренировки и записывать оплаты."
+              action={
+                <button className="btn btn--sm mt8" onClick={() => setAddingClient(true)}>
+                  <Plus size={16} weight="bold" /> Добавить подопечного
+                </button>
+              }
+            />
+          )}
           {stats.map((s) => (
             <Link key={s.client.id} to={`/clients/${s.client.id}`} className="row row--clickable">
               <Avatar name={s.client.name} id={s.client.id} />

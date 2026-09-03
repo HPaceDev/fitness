@@ -2,7 +2,7 @@ import type { MeasurementStatus } from '../data/selectors'
 import { MEASURE_FIELDS, type Measurement } from '../data/types'
 import { formatDateShort, parseLocal } from '../utils/date'
 
-const fmt = (n?: number) => (n === undefined || n === null ? '—' : String(n).replace('.', ','))
+const fmt = (n?: number) => (n === undefined || n === null ? '' : String(n).replace('.', ','))
 const delta = (a?: number, b?: number) => (a === undefined || b === undefined ? undefined : Math.round((a - b) * 10) / 10)
 
 function Delta({ d }: { d?: number }) {

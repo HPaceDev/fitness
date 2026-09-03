@@ -325,7 +325,7 @@ function TrainersTable({ rows, compact, onChanged }: { rows: TrainerRow[]; compa
                 </div>
               </td>
               <td>{formatDateShort(parseLocal(t.createdAt))}</td>
-              <td>{t.lastSeenAt ? formatDateShort(parseLocal(t.lastSeenAt)) : '—'}</td>
+              <td>{t.lastSeenAt ? formatDateShort(parseLocal(t.lastSeenAt)) : 'не заходил'}</td>
               <td className="num">{t.clients}</td>
               <td className="num">{t.workouts}</td>
               <td className="num bold">{formatMoney(t.paymentsTotal)}</td>

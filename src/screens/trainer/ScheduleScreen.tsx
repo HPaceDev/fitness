@@ -1,16 +1,15 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../../data/store'
-import { clientById, clientStats, upcomingBirthdays, workoutsByDay } from '../../data/selectors'
-import { Link } from 'react-router-dom'
-import { formatPhone } from '../../utils/phone'
+import { clientById, clientStats, workoutsByDay } from '../../data/selectors'
 import type { Workout } from '../../data/types'
-import { addDays, formatDayLong, isSameDay, plural, startOfDay, toDateKey, weekdayShort } from '../../utils/date'
+import { addDays, formatDayLong, isSameDay, parseLocal, plural, startOfDay, toDateKey, weekdayShort } from '../../utils/date'
 import { SessionsPill } from '../../components/StatusPill'
 import { WorkoutCard } from '../../components/WorkoutCard'
 import { AddWorkoutSheet } from './forms'
 import { WorkoutSheet } from './WorkoutSheet'
-import { PaymentAlerts } from '../../components/PaymentAlerts'
-import { MeasureDue } from '../../components/MeasureDue'
+import { AttentionStrip } from '../../components/AttentionStrip'
+import { CalendarBlank, Plus } from '../../components/icons'
+import { Blank } from '../../components/Blank'
 
 const DAYS_BACK = 7
 const DAYS_FWD = 21
@@ -26,7 +25,13 @@ export function ScheduleScreen() {
   const byDay = useMemo(() => workoutsByDay(state, days[0]!, days[days.length - 1]!), [state, days])
 
   const dayWorkouts = byDay.get(toDateKey(selected)) ?? []
-  const birthdays = useMemo(() => upcomingBirthdays(state, 7), [state])
+  // Ближайшая запланированная тренировка во всём расписании
+  const nextId = useMemo(() => {
+    const now = new Date()
+    return [...state.workouts]
+      .filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= now)
+      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0]?.id
+  }, [state.workouts])
   const todayCount = (byDay.get(toDateKey(today)) ?? []).filter((w) => w.status !== 'cancelled').length
 
   const upcoming = useMemo(() => {
@@ -69,29 +74,12 @@ export function ScheduleScreen() {
             </button>
           )}
           <button className="icon-btn icon-btn--primary" onClick={() => setAdding(true)} aria-label="Добавить тренировку">
-            +
+            <Plus size={22} weight="bold" />
           </button>
         </div>
       </header>
 
-      <PaymentAlerts />
-      <MeasureDue />
-
-      {birthdays.map((b) => (
-        <Link key={b.client.id} to={`/clients/${b.client.id}`} className="bday">
-          <span className="bday__icon">🎂</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="bday__title">
-              {b.client.name}: {b.inDays === 0 ? 'сегодня день рождения' : b.inDays === 1 ? 'завтра день рождения' : `день рождения через ${b.inDays} ${plural(b.inDays, 'день', 'дня', 'дней')}`}
-            </div>
-            <div className="bday__sub">
-              {b.age ? `Исполняется ${b.age}` : 'Не забудьте поздравить'}
-              {b.client.phone ? ` · ${formatPhone(b.client.phone)}` : ''}
-            </div>
-          </div>
-          <span className="row__chevron">›</span>
-        </Link>
-      ))}
+      <AttentionStrip />
 
       <div className="daystrip">
         {days.map((d) => {
@@ -114,15 +102,18 @@ export function ScheduleScreen() {
           <small>{dayWorkouts.length ? `${dayWorkouts.length} шт.` : ''}</small>
         </div>
         {dayWorkouts.length === 0 ? (
-          <div className="card empty">
-            Тренировок нет.
-            <br />
-            <button className="btn btn--ghost btn--sm mt8" onClick={() => setAdding(true)}>
-              Добавить на этот день
-            </button>
-          </div>
+          <Blank
+            icon={<CalendarBlank size={22} />}
+            title="В этот день тренировок нет"
+            text="Поставьте тренировку подопечному или группе, она появится здесь и у него в приложении."
+            action={
+              <button className="btn btn--sm mt8" onClick={() => setAdding(true)}>
+                <Plus size={16} weight="bold" /> Добавить тренировку
+              </button>
+            }
+          />
         ) : (
-          dayWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} onClick={() => setOpenWorkout(w)} extra={extraFor(w)} />)
+          dayWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} onClick={() => setOpenWorkout(w)} extra={extraFor(w)} next={w.id === nextId} />)
         )}
       </section>
 
@@ -135,7 +126,7 @@ export function ScheduleScreen() {
                 {formatDayLong(date)}
               </div>
               {items.map((w) => (
-                <WorkoutCard key={w.id} workout={w} onClick={() => setOpenWorkout(w)} />
+                <WorkoutCard key={w.id} workout={w} onClick={() => setOpenWorkout(w)} next={w.id === nextId} />
               ))}
             </div>
           ))}

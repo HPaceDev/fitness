@@ -6,6 +6,7 @@ import type { Workout } from '../../data/types'
 import { Avatar } from '../../components/Avatar'
 import { SessionsPill } from '../../components/StatusPill'
 import { WorkoutCard } from '../../components/WorkoutCard'
+import { PencilSimple } from '../../components/icons'
 import { formatMoney } from '../../utils/money'
 import { formatDayLong, parseLocal } from '../../utils/date'
 import { AddMembersSheet, AddWorkoutSheet, GroupSheet } from './forms'
@@ -53,7 +54,7 @@ export function GroupScreen() {
           </div>
         </div>
         <button className="icon-btn icon-btn--ghost" onClick={() => setEditing(true)} aria-label="Редактировать">
-          ✎
+          <PencilSimple size={20} />
         </button>
       </div>
 

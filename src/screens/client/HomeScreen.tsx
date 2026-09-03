@@ -5,6 +5,8 @@ import { clientByUser, clientStats, involvesClient, workoutsByDay } from '../../
 import type { Workout } from '../../data/types'
 import { addDays, formatDayLong, formatTime, isSameDay, parseLocal, startOfDay, toDateKey, weekdayShort } from '../../utils/date'
 import { WorkoutCard } from '../../components/WorkoutCard'
+import { Blank } from '../../components/Blank'
+import { CalendarBlank } from '../../components/icons'
 import { NoClientCard } from './NoClientCard'
 
 const DAYS_BACK = 7
@@ -80,9 +82,9 @@ export function HomeScreen() {
       <section className="section" style={{ marginTop: 4 }}>
         <div className="section__title">{formatDayLong(selected)}</div>
         {dayWorkouts.length === 0 ? (
-          <div className="card empty">В этот день тренировок нет</div>
+          <Blank icon={<CalendarBlank size={22} />} title="В этот день тренировок нет" text="Расписание ведёт тренер. Новая тренировка появится здесь сразу после того, как он её поставит." />
         ) : (
-          dayWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} viewerClientId={client.id} />)
+          dayWorkouts.map((w) => <WorkoutCard key={w.id} workout={w} viewerClientId={client.id} next={w.id === stats.nextWorkout?.id} />)
         )}
       </section>
 
@@ -95,7 +97,7 @@ export function HomeScreen() {
                 {formatDayLong(date)}
               </div>
               {items.map((w) => (
-                <WorkoutCard key={w.id} workout={w} viewerClientId={client.id} />
+                <WorkoutCard key={w.id} workout={w} viewerClientId={client.id} next={w.id === stats.nextWorkout?.id} />
               ))}
             </div>
           ))}

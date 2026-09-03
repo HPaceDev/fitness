@@ -53,6 +53,11 @@ export function LoginScreen() {
             Зарегистрироваться
           </button>
         </div>
+        <div className="auth__switch" style={{ marginTop: 10 }}>
+          <button type="button" onClick={() => navigate('/welcome')} style={{ color: 'var(--text-2)', fontWeight: 600 }}>
+            Что умеет приложение
+          </button>
+        </div>
 
       </form>
     </div>

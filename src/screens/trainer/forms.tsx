@@ -145,7 +145,7 @@ export function GroupSheet({ open, onClose, groupId, onRemoved }: { open: boolea
           <span className="field__label">Цена занятия в группе, ₽</span>
           <input className="field__input" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" />
           <span className="field__hint">
-            Занятие списывается с общего абонемента подопечного, а в доходе учитывается по этой цене. Персональное — по цене подопечного.
+            Занятие списывается с общего абонемента подопечного, а в доходе учитывается по этой цене. Персональное считается по цене подопечного.
           </span>
         </label>
         <button className="btn" disabled={!valid} onClick={submit}>
