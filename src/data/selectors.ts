@@ -32,11 +32,12 @@ export function involvesClient(state: AppState, w: Workout, clientId: string): b
   return false
 }
 
-/** Абонемент-«кошелёк»: персональные занятия или конкретная группа */
+/** Абонемент подопечного: одно число занятий на персональные и групповые вместе */
 export interface PoolStats {
   key: string
   label: string
   groupId?: string
+  /** Цена персонального занятия — для расчёта долга и напоминаний */
   price: number
   purchased: number
   used: number
@@ -46,28 +47,22 @@ export interface PoolStats {
   lastPaymentDate?: string
 }
 
-function poolStats(state: AppState, client: Client, group: Group | undefined, now: Date): PoolStats {
-  const gid = group?.id
-  const payments = state.payments.filter((p) => p.clientId === client.id && (p.groupId ?? undefined) === gid)
+function unifiedPool(state: AppState, client: Client, now: Date): PoolStats {
+  const payments = state.payments.filter((p) => p.clientId === client.id)
   const purchased = payments.reduce((s, p) => s + p.sessions, 0)
-
-  const workouts = state.workouts.filter((w) => (gid ? w.groupId === gid : w.clientId === client.id))
+  const workouts = state.workouts.filter((w) => involvesClient(state, w, client.id))
   const used = workouts.filter((w) => consumesFor(w, client.id)).length
   const planned = workouts.filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= startOfDay(now)).length
-
-  const price = group ? group.pricePerSession : client.pricePerSession
   const remaining = purchased - used
   const sortedDates = payments.map((p) => p.date).sort()
-
   return {
-    key: gid ?? 'personal',
-    label: group ? group.name : 'Персональные',
-    groupId: gid,
-    price,
+    key: 'all',
+    label: 'Абонемент',
+    price: client.pricePerSession,
     purchased,
     used,
     remaining,
-    debt: remaining < 0 ? -remaining * price : 0,
+    debt: remaining < 0 ? -remaining * client.pricePerSession : 0,
     planned,
     lastPaymentDate: sortedDates[sortedDates.length - 1],
   }
@@ -75,49 +70,38 @@ function poolStats(state: AppState, client: Client, group: Group | undefined, no
 
 export interface ClientStats {
   client: Client
-  personal: PoolStats
-  groups: PoolStats[]
-  /** Все кошельки: персональный + группы */
+  /** Единый абонемент */
+  pool: PoolStats
+  /** Для совместимости с экранами: всегда один элемент */
   pools: PoolStats[]
+  personal: PoolStats
   remainingTotal: number
   debtTotal: number
   paidTotal: number
   lastPaymentDate?: string
   nextWorkout?: Workout
-  /** Есть ли кошелёк, где занятия кончились или ушли в минус */
+  /** Занятия кончились, а тренировки запланированы или абонемент был */
   hasLow: boolean
 }
 
 export function clientStats(state: AppState, client: Client, now = new Date()): ClientStats {
-  const personal = poolStats(state, client, undefined, now)
-  // Группы, где подопечный состоит, плюс те, за которые платил (на случай исключения из группы)
-  const groupIds = new Set<string>(groupsOfClient(state, client.id).map((g) => g.id))
-  for (const p of state.payments) if (p.clientId === client.id && p.groupId) groupIds.add(p.groupId)
-  const groups = [...groupIds]
-    .map((id) => groupById(state, id))
-    .filter((g): g is Group => !!g)
-    .map((g) => poolStats(state, client, g, now))
-
-  const pools = [personal, ...groups].filter((p) => p.purchased > 0 || p.used > 0 || p.planned > 0 || p.key === 'personal')
+  const pool = unifiedPool(state, client, now)
   const clientPayments = state.payments.filter((p) => p.clientId === client.id)
   const paidTotal = clientPayments.reduce((s, p) => s + p.amount, 0)
-  const sortedDates = clientPayments.map((p) => p.date).sort()
-
   const nextWorkout = state.workouts
     .filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= now && involvesClient(state, w, client.id))
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0]
-
   return {
     client,
-    personal,
-    groups,
-    pools,
-    remainingTotal: pools.reduce((s, p) => s + p.remaining, 0),
-    debtTotal: pools.reduce((s, p) => s + p.debt, 0),
+    pool,
+    pools: [pool],
+    personal: pool,
+    remainingTotal: pool.remaining,
+    debtTotal: pool.debt,
     paidTotal,
-    lastPaymentDate: sortedDates[sortedDates.length - 1],
+    lastPaymentDate: pool.lastPaymentDate,
     nextWorkout,
-    hasLow: pools.some((p) => p.remaining <= 0 && (p.planned > 0 || p.purchased > 0)),
+    hasLow: pool.remaining <= 0 && (pool.planned > 0 || pool.purchased > 0),
   }
 }
 
@@ -142,7 +126,11 @@ export function workoutsByDay(state: AppState, from: Date, to: Date, filter?: (w
   return map
 }
 
-/** Сколько заработано на тренировке (по факту) */
+/**
+ * Цена занятия зависит от типа: групповое считается по цене группы,
+ * персональное — по цене подопечного. Само занятие при этом списывается
+ * с общего абонемента, счётчик один.
+ */
 export function workoutEarned(state: AppState, w: Workout): number {
   if (w.clientId) return CONSUMING_STATUSES.includes(w.status) ? (clientById(state, w.clientId)?.pricePerSession ?? 0) : 0
   if (w.groupId && w.status === 'done') {
@@ -308,9 +296,7 @@ export function paymentAlerts(state: AppState, now = new Date()): PaymentAlert[]
     for (const pool of st.pools) {
       if (pool.purchased === 0 && pool.used === 0) continue
       if (pool.remaining > 1 || pool.planned === 0) continue
-      const next = state.workouts
-        .filter((w) => w.status === 'planned' && parseLocal(w.startsAt) >= now && (pool.groupId ? w.groupId === pool.groupId : w.clientId === c.id))
-        .sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0]
+      const next = st.nextWorkout
       out.push({ client: c, pool, nextWorkout: next })
     }
   }
@@ -320,12 +306,11 @@ export function paymentAlerts(state: AppState, now = new Date()): PaymentAlert[]
 /** Текст напоминания подопечному об оплате */
 export function paymentReminderText(state: AppState, alert: PaymentAlert): string {
   const first = alert.client.name.split(' ')[0]
-  const what = alert.pool.groupId ? `по группе «${alert.pool.label}»` : 'по персональным тренировкам'
-  const left = alert.pool.remaining <= 0 ? `занятия закончились` : `осталось последнее занятие`
+  const left = alert.pool.remaining <= 0 ? `занятия по абонементу закончились` : `осталось последнее занятие по абонементу`
   const next = alert.nextWorkout ? `, следующая тренировка ${formatDayLong(parseLocal(alert.nextWorkout.startsAt)).toLowerCase()} в ${formatTime(parseLocal(alert.nextWorkout.startsAt))}` : ''
   const pack = `Продлить: 8 занятий = ${(8 * alert.pool.price).toLocaleString('ru-RU')} ₽, 4 занятия = ${(4 * alert.pool.price).toLocaleString('ru-RU')} ₽.`
   const details = state.trainer?.payDetails ? ` Реквизиты: ${state.trainer.payDetails}.` : ''
-  return `${first}, привет! У вас ${left} ${what}${next}. ${pack}${details}`
+  return `${first}, привет! У вас ${left}${next}. ${pack}${details}`
 }
 
 /* ---------- Замеры ---------- */

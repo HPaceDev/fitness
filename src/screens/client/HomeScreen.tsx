@@ -51,15 +51,13 @@ export function HomeScreen() {
       <div className={`hero${stats.remainingTotal <= 0 ? ' hero--alert' : ''}`}>
         <div className="hero__label">Осталось занятий</div>
         <div className="hero__rows">
-          {stats.pools.map((p) => (
-            <div key={p.key} className="hero__row">
-              <span className="hero__row-label">{p.label}</span>
-              <span className="hero__row-value num">
-                {p.remaining}
-                <span className="hero__row-of"> / {p.purchased}</span>
-              </span>
-            </div>
-          ))}
+          <div className="hero__row">
+            <span className="hero__row-label">Персональные и групповые</span>
+            <span className="hero__row-value num">
+              {stats.pool.remaining}
+              <span className="hero__row-of"> / {stats.pool.purchased}</span>
+            </span>
+          </div>
         </div>
         <div className="hero__sub">{stats.debtTotal > 0 ? 'Есть занятия в долг, загляните в «Мои тренировки»' : 'Подробности в разделе «Мои тренировки»'}</div>
       </div>

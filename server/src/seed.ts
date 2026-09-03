@@ -78,10 +78,10 @@ export async function seedDemo(db: Db) {
     pay(c.c2, 10000, 4, day(-28)),
     pay(c.c3, 35000, 10, day(-18)),
     pay(c.c4, 2500, 1, day(-1), undefined, 'Наличными'),
-    pay(c.c1, 12000, 8, day(-22), g1),
-    pay(c.c3, 12000, 8, day(-22), g1),
-    pay(c.c5, 6000, 4, day(-14), g1),
-    pay(c.c2, 9600, 8, day(-10), g2),
+    pay(c.c1, 24000, 8, day(-22)),
+    pay(c.c3, 24000, 8, day(-22)),
+    pay(c.c5, 12000, 4, day(-14)),
+    pay(c.c2, 20000, 8, day(-10)),
   ])
 
   type Att = Record<string, 'present' | 'missed' | 'excused'>

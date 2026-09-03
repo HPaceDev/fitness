@@ -13,7 +13,7 @@ export function PoolCard({ pool, onPay, payLabel = '+ Оплата' }: { pool: P
         <div className="pool__head">
           <div>
             <div className="pool__label">{pool.label}</div>
-            <div className="pool__price">{formatMoney(pool.price)} за занятие</div>
+            <div className="pool__price">общий на персональные и групповые</div>
           </div>
           {onPay && (
             <button className="btn btn--sm btn--secondary" onClick={onPay}>

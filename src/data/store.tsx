@@ -36,7 +36,17 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'client/add':
       return { ...state, clients: [...state.clients, action.client] }
     case 'client/update':
-      return { ...state, clients: state.clients.map((c) => (c.id === action.id ? { ...c, ...action.patch } : c)) }
+      return {
+        ...state,
+        clients: state.clients.map((c) => {
+          if (c.id !== action.id) return c
+          const next = { ...c, ...action.patch }
+          // Пустая строка означает «поле очищено»
+          if (action.patch.phone === '') next.phone = undefined
+          if (action.patch.note === '') next.note = undefined
+          return next
+        }),
+      }
     case 'client/invite':
       return state // токен придёт с сервера
     case 'client/remove':

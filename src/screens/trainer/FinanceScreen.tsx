@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { useStore } from '../../data/store'
-import { clientById, groupById, monthFinance } from '../../data/selectors'
+import { clientById, monthFinance } from '../../data/selectors'
 import { Avatar } from '../../components/Avatar'
 import { formatDateShort, formatMonth, isSameMonth, parseLocal, plural, sessionsWord } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
@@ -113,7 +113,7 @@ export function FinanceScreen() {
                 <div className="row__body">
                   <div className="row__title">{c?.name ?? 'Удалённый подопечный'}</div>
                   <div className="row__sub">
-                    {formatDateShort(parseLocal(p.date))} · {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'}
+                    {formatDateShort(parseLocal(p.date))} · {p.sessions} {sessionsWord(p.sessions)}
                     {p.comment ? ` · ${p.comment}` : ''}
                   </div>
                 </div>

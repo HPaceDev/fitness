@@ -4,8 +4,8 @@ import { useStore } from '../../data/store'
 import { allClientStats } from '../../data/selectors'
 import { Avatar } from '../../components/Avatar'
 import { SessionsPill } from '../../components/StatusPill'
-import { formatDayLong, formatTime, parseLocal } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
+import { formatDayLong, formatTime, parseLocal } from '../../utils/date'
 import { ClientSheet, GroupSheet } from './forms'
 
 export function ClientsScreen() {
@@ -74,9 +74,7 @@ export function ClientsScreen() {
                 </div>
                 <div className="pills">
                   {s.client.status === 'paused' && <span className="pill pill--gray">На паузе</span>}
-                  {s.pools.map((p) => (
-                    <SessionsPill key={p.key} remaining={p.remaining} label={p.groupId ? p.label : 'Персональные'} />
-                  ))}
+                  <SessionsPill remaining={s.pool.remaining} label="Осталось" />
                 </div>
               </div>
               <span className="row__chevron">›</span>

@@ -6,8 +6,8 @@ import type { Workout } from '../../data/types'
 import { Avatar } from '../../components/Avatar'
 import { SessionsPill } from '../../components/StatusPill'
 import { WorkoutCard } from '../../components/WorkoutCard'
-import { formatDayLong, parseLocal } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
+import { formatDayLong, parseLocal } from '../../utils/date'
 import { AddMembersSheet, AddWorkoutSheet, GroupSheet } from './forms'
 import { WorkoutSheet } from './WorkoutSheet'
 
@@ -49,7 +49,7 @@ export function GroupScreen() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="profile__name">{group.name}</div>
           <div className="profile__sub">
-            {group.memberIds.length} чел. · {formatMoney(group.pricePerSession)} за занятие с каждого
+            {group.memberIds.length} чел. · {formatMoney(group.pricePerSession)} за занятие
           </div>
         </div>
         <button className="icon-btn icon-btn--ghost" onClick={() => setEditing(true)} aria-label="Редактировать">
@@ -69,14 +69,14 @@ export function GroupScreen() {
       <section className="section">
         <div className="section__title">
           <span>Участники</span>
-          <small>остаток по абонементу на группу</small>
+          <small>остаток занятий</small>
         </div>
         <div className="list">
           {group.memberIds.length === 0 && <div className="empty">В группе пока никого</div>}
           {group.memberIds.map((cid) => {
             const c = clientById(state, cid)
             if (!c) return null
-            const pool = clientStats(state, c).groups.find((p) => p.groupId === group.id)
+            const pool = clientStats(state, c).pool
             return (
               <div key={cid} className="row">
                 <Link to={`/clients/${cid}`} style={{ display: 'contents' }}>

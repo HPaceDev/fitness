@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../../data/store'
 import { Sheet } from '../../components/Sheet'
-import { clientById, groupById, groupsOfClient } from '../../data/selectors'
+import { clientById, groupById } from '../../data/selectors'
 import type { Client, Group, WorkoutKind } from '../../data/types'
 import { KIND_LABEL } from '../../data/types'
 import { toLocalInput, sessionsWord } from '../../utils/date'
@@ -27,17 +27,25 @@ export function ClientSheet({ open, onClose, clientId, onRemoved }: { open: bool
 
   const submit = () => {
     if (!valid) return
+    // Пустая строка — осознанная очистка поля, её нужно отправить на сервер.
+    // undefined выпало бы из JSON, и старое значение осталось бы на месте.
     const patch = {
       name: name.trim(),
-      phone: phone.trim() ? normalizePhone(phone) : undefined,
+      phone: phone.trim() ? normalizePhone(phone) : '',
       pricePerSession: Number(price),
-      note: note.trim() || undefined,
+      note: note.trim(),
       status: (paused ? 'paused' : 'active') as 'paused' | 'active',
       birthday: birthday || null,
     }
     if (existing) dispatch({ type: 'client/update', id: existing.id, patch })
     else {
-      const client: Client = { id: uid(), createdAt: nowIso(), ...patch }
+      const client: Client = {
+        id: uid(),
+        createdAt: nowIso(),
+        ...patch,
+        phone: patch.phone || undefined,
+        note: patch.note || undefined,
+      }
       dispatch({ type: 'client/add', client })
     }
     onClose()
@@ -120,7 +128,7 @@ export function GroupSheet({ open, onClose, groupId, onRemoved }: { open: boolea
 
   const remove = () => {
     if (!existing) return
-    if (!confirm(`Удалить группу «${existing.name}» вместе с её тренировками и абонементами?`)) return
+    if (!confirm(`Удалить группу «${existing.name}» вместе с её тренировками?`)) return
     dispatch({ type: 'group/remove', id: existing.id })
     onClose()
     onRemoved?.()
@@ -134,9 +142,11 @@ export function GroupSheet({ open, onClose, groupId, onRemoved }: { open: boolea
           <input className="field__input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Утренняя функционалка" autoFocus={!existing} />
         </label>
         <label className="field">
-          <span className="field__label">Цена занятия для каждого участника, ₽</span>
+          <span className="field__label">Цена занятия в группе, ₽</span>
           <input className="field__input" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" />
-          <span className="field__hint">Одна цена на всю группу. Абонементы на группу считаются отдельно от персональных.</span>
+          <span className="field__hint">
+            Занятие списывается с общего абонемента подопечного, а в доходе учитывается по этой цене. Персональное — по цене подопечного.
+          </span>
         </label>
         <button className="btn" disabled={!valid} onClick={submit}>
           {existing ? 'Сохранить' : 'Создать группу'}
@@ -181,38 +191,19 @@ export function AddMembersSheet({ open, onClose, groupId }: { open: boolean; onC
 
 const PACKS = [1, 4, 8, 10, 12]
 
-export function AddPaymentSheet({
-  open,
-  onClose,
-  clientId,
-  defaultGroupId,
-}: {
-  open: boolean
-  onClose: () => void
-  clientId: string
-  defaultGroupId?: string
-}) {
+export function AddPaymentSheet({ open, onClose, clientId }: { open: boolean; onClose: () => void; clientId: string; defaultGroupId?: string }) {
   const { state, dispatch } = useStore()
   const client = clientById(state, clientId)
-  const groups = client ? groupsOfClient(state, client.id) : []
-  const [groupId, setGroupId] = useState<string>(defaultGroupId ?? '')
-  const priceFor = (gid: string) => (gid ? (groupById(state, gid)?.pricePerSession ?? 0) : (client?.pricePerSession ?? 0))
+  const price = client?.pricePerSession ?? 0
   const [sessions, setSessions] = useState('8')
-  const [amount, setAmount] = useState(() => String(priceFor(defaultGroupId ?? '') * 8))
+  const [amount, setAmount] = useState(() => String(price * 8))
   const [amountTouched, setAmountTouched] = useState(false)
   const [date, setDate] = useState(() => toLocalInput(new Date()).slice(0, 10))
   const [comment, setComment] = useState('')
 
-  const recompute = (n: number, gid: string) => {
-    if (!amountTouched) setAmount(String(priceFor(gid) * n))
-  }
   const pickSessions = (n: number) => {
     setSessions(String(n))
-    recompute(n, groupId)
-  }
-  const pickGroup = (gid: string) => {
-    setGroupId(gid)
-    recompute(Number(sessions) || 0, gid)
+    if (!amountTouched) setAmount(String(price * n))
   }
 
   const valid = Number(sessions) > 0 && Number(amount) >= 0 && !!client
@@ -225,7 +216,6 @@ export function AddPaymentSheet({
       payment: {
         id: uid(),
         clientId,
-        groupId: groupId || undefined,
         sessions: Number(sessions),
         amount: Number(amount),
         date,
@@ -237,23 +227,9 @@ export function AddPaymentSheet({
 
   if (!client) return null
   return (
-    <Sheet open={open} title="Оплата" onClose={onClose}>
+    <Sheet open={open} title="Оплата абонемента" onClose={onClose}>
       <div className="form">
-        {groups.length > 0 && (
-          <div className="field">
-            <span className="field__label">Абонемент на</span>
-            <div className="chips">
-              <button className={`chip${groupId === '' ? ' chip--active' : ''}`} onClick={() => pickGroup('')}>
-                Персональные
-              </button>
-              {groups.map((g) => (
-                <button key={g.id} className={`chip${groupId === g.id ? ' chip--active' : ''}`} onClick={() => pickGroup(g.id)}>
-                  {g.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <p className="small muted">Занятия общие: тратятся и на персональные, и на групповые тренировки.</p>
         <div className="field">
           <span className="field__label">Пакет</span>
           <div className="chips">
@@ -283,7 +259,7 @@ export function AddPaymentSheet({
           </label>
         </div>
         <span className="field__hint">
-          {perSession > 0 ? `${formatMoney(perSession)} за занятие` : ' '} · обычная цена {formatMoney(priceFor(groupId))}
+          {perSession > 0 ? `${formatMoney(perSession)} за занятие` : ' '} · цена персонального {formatMoney(price)}
         </span>
         <label className="field">
           <span className="field__label">Дата оплаты</span>

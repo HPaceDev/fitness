@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { useStore } from '../../data/store'
-import { clientByUser, clientStats, consumesFor, exerciseProgress, groupById, involvesClient, measurementStatus } from '../../data/selectors'
+import { clientByUser, clientStats, consumesFor, exerciseProgress, involvesClient, measurementStatus } from '../../data/selectors'
 import { MeasurementsSummary } from '../../components/MeasurementsTable'
 import { ProgressList } from '../../components/ProgressList'
 import { PoolCard } from '../../components/PoolCard'
@@ -65,12 +65,11 @@ export function SubscriptionScreen() {
         <div className="list">
           {payments.length === 0 && <div className="empty">Оплат ещё не было</div>}
           {payments.map((p) => {
-            const g = groupById(state, p.groupId)
             return (
               <div key={p.id} className="row">
                 <div className="row__body">
                   <div className="row__title">
-                    {p.sessions} {sessionsWord(p.sessions)} · {g ? g.name : 'персональные'}
+                    {p.sessions} {sessionsWord(p.sessions)}
                   </div>
                   <div className="row__sub">
                     {formatDateShort(parseLocal(p.date))}

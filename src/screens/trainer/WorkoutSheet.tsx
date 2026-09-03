@@ -36,7 +36,7 @@ export function WorkoutSheet({ workout, onClose }: { workout: Workout | null; on
           <Avatar name={client.name} id={client.id} />
           <div className="row__body">
             <div className="row__title">{client.name}</div>
-            <div className="row__sub">{stats && <SessionsPill remaining={stats.personal.remaining} label="Персональные" />}</div>
+            <div className="row__sub">{stats && <SessionsPill remaining={stats.pool.remaining} label="Осталось" />}</div>
           </div>
           <span className="row__chevron">›</span>
         </Link>

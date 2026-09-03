@@ -137,35 +137,27 @@ async function lowBalance(db: Db, now: Date) {
   for (const c of clients) {
     if (c.status === 'paused') continue
     const payments = await db.select().from(schema.payments).where(eq(schema.payments.clientId, c.id))
+    const purchased = payments.reduce((s, x) => s + x.sessions, 0)
+    if (purchased === 0) continue
     const memberships = await db.select().from(schema.groupMembers).where(eq(schema.groupMembers.clientId, c.id))
-    const groupIds = memberships.map((m) => m.groupId)
-    const workouts = await db.select().from(schema.workouts).where(eq(schema.workouts.trainerId, c.trainerId))
-    const pools: { key: string; label: string; groupId?: string }[] = [{ key: 'personal', label: 'персональные' }]
-    if (groupIds.length) {
-      const gs = await db.select().from(schema.groups).where(inArray(schema.groups.id, groupIds))
-      for (const g of gs) pools.push({ key: g.id, label: g.name, groupId: g.id })
-    }
-    for (const p of pools) {
-      const purchased = payments.filter((x) => (x.groupId ?? undefined) === p.groupId).reduce((s, x) => s + x.sessions, 0)
-      const relevant = workouts.filter((w) => (p.groupId ? w.groupId === p.groupId : w.clientId === c.id))
-      const used = relevant.filter((w) => {
-        if (w.clientId) return w.status === 'done' || w.status === 'missed'
-        const a = w.attendance?.[c.id]
-        return w.status === 'done' && (a === 'present' || a === 'missed')
-      }).length
-      const planned = relevant.filter((w) => w.status === 'planned' && w.startsAt >= now).length
-      const remaining = purchased - used
-      if (purchased === 0 || remaining > 1 || planned === 0) continue
-      const text =
-        remaining <= 0
-          ? `Абонемент (${esc(p.label)}) закончился: осталось ${remaining} занятий, а запланировано ${planned}.`
-          : `По абонементу (${esc(p.label)}) осталось 1 занятие, запланировано ${planned}.`
-      const key = `low:${c.id}:${p.key}:${remaining}:${purchased}`
-      const clientChat = await chatOfUser(db, c.userId)
-      if (clientChat) await once(db, `${key}:client`, () => sendMessage(clientChat, `💳 ${text} Пора продлить.`).then(() => undefined))
-      const trainerChat = await chatOfUser(db, c.trainerId)
-      if (trainerChat) await once(db, `${key}:trainer`, () => sendMessage(trainerChat, `💳 <b>${esc(c.name)}</b>: ${text}`).then(() => undefined))
-    }
+    const groupIds = new Set(memberships.map((m) => m.groupId))
+    const workouts = (await db.select().from(schema.workouts).where(eq(schema.workouts.trainerId, c.trainerId))).filter(
+      (w) => w.clientId === c.id || (w.groupId && (groupIds.has(w.groupId) || (w.attendance && c.id in w.attendance))),
+    )
+    const used = workouts.filter((w) => {
+      if (w.clientId) return w.status === 'done' || w.status === 'missed'
+      const a = w.attendance?.[c.id]
+      return w.status === 'done' && (a === 'present' || a === 'missed')
+    }).length
+    const planned = workouts.filter((w) => w.status === 'planned' && w.startsAt >= now).length
+    const remaining = purchased - used
+    if (remaining > 1 || planned === 0) continue
+    const text = remaining <= 0 ? `Абонемент закончился: осталось ${remaining} занятий, а запланировано ${planned}.` : `По абонементу осталось 1 занятие, запланировано ${planned}.`
+    const key = `low:${c.id}:${remaining}:${purchased}`
+    const clientChat = await chatOfUser(db, c.userId)
+    if (clientChat) await once(db, `${key}:client`, () => sendMessage(clientChat, `💳 ${text} Пора продлить.`).then(() => undefined))
+    const trainerChat = await chatOfUser(db, c.trainerId)
+    if (trainerChat) await once(db, `${key}:trainer`, () => sendMessage(trainerChat, `💳 <b>${esc(c.name)}</b>: ${text}`).then(() => undefined))
   }
 }
 

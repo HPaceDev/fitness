@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useStore } from '../../data/store'
-import { clientById, clientStats, exerciseProgress, groupById, groupsOfClient, involvesClient, measurementStatus } from '../../data/selectors'
+import { clientById, clientStats, exerciseProgress, groupsOfClient, involvesClient, measurementStatus } from '../../data/selectors'
 import { MeasurementSheet } from '../../components/MeasurementSheet'
 import { MeasurementsHistory, MeasurementsSummary } from '../../components/MeasurementsTable'
 import { ExerciseSheet } from '../../components/ExerciseSheet'
@@ -96,7 +96,7 @@ export function ClientScreen() {
       )}
 
       {stats.pools.map((p) => (
-        <PoolCard key={p.key} pool={p} onPay={() => setPaying(p.groupId ?? '')} />
+        <PoolCard key={p.key} pool={p} onPay={() => setPaying('')} />
       ))}
 
       <div className="stats mt12">
@@ -189,7 +189,7 @@ export function ClientScreen() {
               <div key={p.id} className="row">
                 <div className="row__body">
                   <div className="row__title">
-                    {p.sessions} {sessionsWord(p.sessions)} · {groupById(state, p.groupId)?.name ?? 'персональные'}
+                    {p.sessions} {sessionsWord(p.sessions)}
                   </div>
                   <div className="row__sub">
                     {formatDateShort(parseLocal(p.date))}
@@ -209,7 +209,7 @@ export function ClientScreen() {
         )}
       </section>
 
-      <AddPaymentSheet key={`pay-${paying}`} open={paying !== null} onClose={() => setPaying(null)} clientId={client.id} defaultGroupId={paying || undefined} />
+      <AddPaymentSheet key={`pay-${paying}`} open={paying !== null} onClose={() => setPaying(null)} clientId={client.id} />
       <AddWorkoutSheet key={`w-${adding}`} open={adding} onClose={() => setAdding(false)} clientId={client.id} />
       <ClientSheet key={`e-${editing}`} open={editing} onClose={() => setEditing(false)} clientId={client.id} onRemoved={() => navigate('/clients')} />
       <WorkoutSheet workout={openWorkout} onClose={() => setOpenWorkout(null)} />
