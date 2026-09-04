@@ -64,6 +64,11 @@ export function formatDateShort(d: Date): string {
   return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`
 }
 
+/** «6 сентября 1995»: для дат, где важен год */
+export function formatDateWithYear(d: Date): string {
+  return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getFullYear()}`
+}
+
 export function formatMonth(d: Date): string {
   return `${MONTHS_NOM[d.getMonth()]} ${d.getFullYear()}`
 }

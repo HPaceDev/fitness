@@ -5,6 +5,7 @@ import { Sheet } from './Sheet'
 import { formatDateShort, parseLocal, toLocalInput } from '../utils/date'
 import { uid } from '../utils/id'
 import { Check } from './icons'
+import { DateField } from './DateField'
 import { catalogNames } from '../data/exercises'
 
 interface Props {
@@ -123,10 +124,7 @@ export function ExerciseSheet({ open, onClose, clientId, workoutId, defaultDate 
             <span className="field__label">Подходов</span>
             <input className="field__input" value={sets} onChange={(e) => setSets(e.target.value)} inputMode="numeric" />
           </label>
-          <label className="field">
-            <span className="field__label">Дата</span>
-            <input className="field__input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          </label>
+          <DateField label="Дата" value={date} onChange={setDate} />
         </div>
         <button className="btn" disabled={!valid} onClick={submit}>
           Записать и добавить ещё

@@ -8,6 +8,7 @@ import { toLocalInput, sessionsWord } from '../../utils/date'
 import { formatMoney } from '../../utils/money'
 import { uid } from '../../utils/id'
 import { normalizePhone } from '../../utils/phone'
+import { DateField, DateTimeField } from '../../components/DateField'
 
 const nowIso = () => new Date().toISOString()
 
@@ -75,11 +76,14 @@ export function ClientSheet({ open, onClose, clientId, onRemoved }: { open: bool
           <span className="field__label">Цена персонального занятия, ₽</span>
           <input className="field__input" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="numeric" />
         </label>
-        <label className="field">
-          <span className="field__label">День рождения</span>
-          <input className="field__input" type="date" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
-          <span className="field__hint">Напомним в расписании за неделю и в день</span>
-        </label>
+        <DateField
+          label="День рождения"
+          value={birthday}
+          onChange={setBirthday}
+          quick={false}
+          years
+          hint="Напомним в расписании за неделю и в день. Год открывается по нажатию на название месяца."
+        />
         <label className="field">
           <span className="field__label">Заметка</span>
           <textarea className="field__input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Травмы, цели, пожелания" />
@@ -261,10 +265,7 @@ export function AddPaymentSheet({ open, onClose, clientId }: { open: boolean; on
         <span className="field__hint">
           {perSession > 0 ? `${formatMoney(perSession)} за занятие` : ' '} · цена персонального {formatMoney(price)}
         </span>
-        <label className="field">
-          <span className="field__label">Дата оплаты</span>
-          <input className="field__input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
+        <DateField label="Дата оплаты" value={date} onChange={setDate} />
         <label className="field">
           <span className="field__label">Комментарий</span>
           <input className="field__input" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Перевод на карту" />
@@ -382,10 +383,7 @@ export function AddWorkoutSheet({
             ))}
           </div>
         </div>
-        <label className="field">
-          <span className="field__label">Дата и время</span>
-          <input className="field__input" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-        </label>
+        <DateTimeField label="Дата и время" value={startsAt} onChange={setStartsAt} />
         <div className="field">
           <span className="field__label">Длительность</span>
           <div className="seg">

@@ -6,6 +6,7 @@ import { MEASURE_FIELDS, type MeasureKey } from '../data/types'
 import { Sheet } from './Sheet'
 import { toLocalInput } from '../utils/date'
 import { uid } from '../utils/id'
+import { DateField } from './DateField'
 
 /** Замеры: поля подставляются из прошлого замера, меняешь только то, что изменилось */
 export function MeasurementSheet({ open, onClose, clientId }: { open: boolean; onClose: () => void; clientId: string }) {
@@ -53,10 +54,7 @@ export function MeasurementSheet({ open, onClose, clientId }: { open: boolean; o
             </label>
           ))}
         </div>
-        <label className="field">
-          <span className="field__label">Дата</span>
-          <input className="field__input" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
+        <DateField label="Дата" value={date} onChange={setDate} />
         <label className="field">
           <span className="field__label">Заметка</span>
           <input className="field__input" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Например: после отпуска" />
